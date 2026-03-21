@@ -2,11 +2,14 @@ import 'dart:io';
 import 'dart:math';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:learn_numbers_flutter/localization/language/languages.dart';
 import 'package:learn_numbers_flutter/ui/quizscreen/quizscreen.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -20,17 +23,90 @@ class PracticeScreen extends StatefulWidget {
 
 class _PracticeScreenState extends State<PracticeScreen> {
 
+  static const List<List<Color>> _letterBgGradients = [
+    [Color(0xFFFFF9C4), Color(0xFFFFE082)],
+    [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
+    [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
+    [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+    [Color(0xFFFCE4EC), Color(0xFFF8BBD9)],
+    [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+    [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+    [Color(0xFFF9FBE7), Color(0xFFF0F4C3)],
+    [Color(0xFFE8EAF6), Color(0xFFC5CAE9)],
+    [Color(0xFFFBE9E7), Color(0xFFFFCCBC)],
+  ];
+
+  bool _isLettersMode = false;
   List<PracticeNumberData> answerNumbersList = [];
   int? originalAnswer = 0;
+  final FlutterTts _flutterTts = FlutterTts();
   late BannerAd _bottomBannerAd;
   bool _isBottomBannerAdLoaded = false;
 
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _generatePractice();
     _createBottomBannerAd();
     super.initState();
+  }
+
+  /// The main question image shown in the large box.
+  /// Letters mode: shows the object image (e.g. apple for A) → kid picks the letter.
+  /// Numbers mode: shows the count image (obj3.png) → kid picks the number.
+  Widget _questionImage() {
+    if (_isLettersMode && originalAnswer != null && originalAnswer! > 0) {
+      final letter = LettersData.letters[originalAnswer! - 1];
+      return Stack(
+        alignment: Alignment.topRight,
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Image.asset(
+                LettersData.letterObjects[letter]!,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () {
+              final name = LettersData.letterObjectNames[letter] ?? letter;
+              Utils.textToSpeech(name, _flutterTts);
+            },
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: CColor.orange.withOpacity(0.90),
+                shape: BoxShape.circle,
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                ],
+              ),
+              child: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 28),
+            ),
+          ),
+        ],
+      );
+    }
+    if (!_isLettersMode && originalAnswer != null && originalAnswer! > 0) {
+      return Image.asset(
+        'assets/images/practice/obj$originalAnswer.png',
+        scale: 2.5,
+      );
+    }
+    return Container();
+  }
+
+  /// Display label for an answer option.
+  String _answerLabel(int count) {
+    if (_isLettersMode) {
+      return LettersData.letters[count - 1].toUpperCase();
+    }
+    return count.toString();
   }
 
   void _createBottomBannerAd() {
@@ -61,12 +137,26 @@ class _PracticeScreenState extends State<PracticeScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          Image.asset(
-            "assets/images/practice/bg.webp",
-            fit: BoxFit.cover,
-            height: double.infinity,
-            width: double.infinity,
-          ),
+        _isLettersMode
+            ? Container(
+                width: double.infinity,
+                height: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _letterBgGradients[
+                        ((originalAnswer ?? 0) - 1).clamp(0, 25) %
+                            _letterBgGradients.length],
+                  ),
+                ),
+              )
+            : Image.asset(
+                "assets/images/practice/bg.webp",
+                fit: BoxFit.cover,
+                height: double.infinity,
+                width: double.infinity,
+              ),
           SafeArea(
             bottom: (Platform.isIOS) ? false : true,
             top: false,
@@ -113,7 +203,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
               margin: EdgeInsets.only(right: Sizes.width_15),
               alignment: Alignment.center,
               child: AutoSizeText(
-                Languages.of(context)!.txtCountObj,
+                _isLettersMode ? "Which Letter?" : Languages.of(context)!.txtCountObj,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: "MochiyPop",
@@ -152,10 +242,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
                     border: Border.all(color: CColor.innerBorder, width: 10),
                     borderRadius: BorderRadius.circular(25),
                     color: CColor.innerBg),
-                child:(originalAnswer == 0)?Container(): Image.asset(
-                  "assets/images/practice/obj"+originalAnswer.toString()+".png",
-                  scale: 2.5,
-                ),
+                child: _questionImage(),
               ),
             ),
           ),
@@ -201,8 +288,8 @@ class _PracticeScreenState extends State<PracticeScreen> {
             border: Border.all(color: CColor.black, width: 5),
             borderRadius: BorderRadius.circular(15),
             color: CColor.boxColorArray[index]),
-        child:  AutoSizeText(
-          answerNumbersList[index].count.toString(),
+        child: AutoSizeText(
+          _answerLabel(answerNumbersList[index].count!),
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: "MochiyPop",
@@ -219,16 +306,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
     originalAnswer = 0;
     answerNumbersList.clear();
 
+    final int maxVal = _isLettersMode ? 26 : 20;
     var rng = Random();
-    var generateRandomNumber = rng.nextInt(20);
+    var generateRandomNumber = rng.nextInt(maxVal) + 1;
     originalAnswer = generateRandomNumber;
     answerNumbersList.add(PracticeNumberData(generateRandomNumber, true));
 
     for (int j = 0; j < 3; j++) {
-
-      var randomNumber = RandomInt.generate(max: 20,min: 1);
+      var randomNumber = RandomInt.generate(max: maxVal, min: 1);
       if(randomNumber == generateRandomNumber){
-        answerNumbersList.add(PracticeNumberData(randomNumber+1,false));
+        final nextNum = (randomNumber % maxVal) + 1;
+        answerNumbersList.add(PracticeNumberData(nextNum, false));
       }else {
         answerNumbersList.add(PracticeNumberData(randomNumber, false));
       }
@@ -236,6 +324,14 @@ class _PracticeScreenState extends State<PracticeScreen> {
 
     answerNumbersList.shuffle();
     setState(() {});
+
+    // Play letter sound after generating so kids hear the object's letter
+    if (_isLettersMode && originalAnswer != null && originalAnswer! > 0) {
+      final letter = LettersData.letters[originalAnswer! - 1];
+      Future.delayed(const Duration(milliseconds: 300), () {
+        Utils.playSound(LettersData.soundPath(letter));
+      });
+    }
   }
 
 

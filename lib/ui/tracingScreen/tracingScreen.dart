@@ -7,6 +7,7 @@ import 'package:learn_numbers_flutter/ui/tracingScreen/numberPaintScreen.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
 import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -22,6 +23,7 @@ class TracingScreen extends StatefulWidget {
 class _TracingScreenState extends State<TracingScreen> {
 
   List<TracingNumbersTable> tracingNumberDataList = [];
+  bool _isLettersMode = false;
   late BannerAd _bottomBannerAd;
   bool _isBottomBannerAdLoaded = false;
 
@@ -31,7 +33,12 @@ class _TracingScreenState extends State<TracingScreen> {
 
   @override
   void initState() {
-    _getTracingNumbersData();
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    if (_isLettersMode) {
+      _buildLettersTracingData();
+    } else {
+      _getTracingNumbersData();
+    }
     _createBottomBannerAd();
     _createInterstitialAd();
     _getPreference();
@@ -195,13 +202,14 @@ class _TracingScreenState extends State<TracingScreen> {
     );
   }
 
-  Future _moveToNextScreen(int pos)async{
+  Future _moveToNextScreen(int pos) async {
     Navigator.push(
         context,
         MaterialPageRoute(
             builder: (context) => NumberPaintScreen(
               tracingNumberDataList: tracingNumberDataList,
               selectedPos: pos,
+              isLettersMode: _isLettersMode,
             )));
   }
   _itemOfListNumber(int pos) {
@@ -222,9 +230,22 @@ class _TracingScreenState extends State<TracingScreen> {
     );
   }
 
-  _getTracingNumbersData()async{
+  _getTracingNumbersData() async {
     tracingNumberDataList = await DataBaseHelper().getAllTracingNumbers();
-    Debug.printLog("_getTracingNumbersData==>> "+tracingNumberDataList.length.toString());
+    Debug.printLog("_getTracingNumbersData==>> " + tracingNumberDataList.length.toString());
+    setState(() {});
+  }
+
+  void _buildLettersTracingData() {
+    tracingNumberDataList = LettersData.letters
+        .asMap()
+        .entries
+        .map((e) => TracingNumbersTable(
+              id: e.key,
+              categoryName: 'letters',
+              imgName: 'assets/images/tracing/lt_${e.value}.png',
+            ))
+        .toList();
     setState(() {});
   }
 

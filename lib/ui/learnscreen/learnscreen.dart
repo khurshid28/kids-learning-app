@@ -5,6 +5,8 @@ import 'package:learn_numbers_flutter/database/tables/learn_numbers_table.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:sizer/sizer.dart';
@@ -222,9 +224,21 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
     );
   }
 
-  _getLearnNumbersData()async{
-    listLearnNumbersData = await DataBaseHelper().getAllLearnNumberData();
-    Debug.printLog("listLearnNumbersData==>> "+listLearnNumbersData.length.toString());
+  _getLearnNumbersData() async {
+    final isLetters = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    if (isLetters) {
+      for (int i = 0; i < LettersData.letters.length; i++) {
+        final l = LettersData.letters[i];
+        listLearnNumbersData.add(LearnNumbersTable(
+          id: i + 1,
+          categoryName: LettersData.iconPath(l),
+          soundName: LettersData.soundPath(l),
+        ));
+      }
+    } else {
+      listLearnNumbersData = await DataBaseHelper().getAllLearnNumberData();
+    }
+    Debug.printLog("listLearnNumbersData==>> " + listLearnNumbersData.length.toString());
     numbers = List.generate(listLearnNumbersData.length, (index) => Container(color: CColor.black,));
     setState(() {});
   }

@@ -13,6 +13,7 @@ class Preference {
   static const String isUserFirsttime = "IS_USER_FIRSTTIME";
   static const String trackStatus = "TRACK_STATUS";
   static const String isMusic = "SOUND";
+  static const String isLettersMode = "IS_LETTERS_MODE";
 
   // ------------------ SINGLETON -----------------------
   static final Preference _preference = Preference._internal();

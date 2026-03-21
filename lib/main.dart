@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:learn_numbers_flutter/ui/colorscreen/colorscreen.dart';
+import 'package:learn_numbers_flutter/ui/modeselect/modeselectscreen.dart';
 import 'package:learn_numbers_flutter/ui/countscreen/countscreen.dart';
 import 'package:learn_numbers_flutter/ui/gamescreen/gamescreen.dart';
 import 'package:learn_numbers_flutter/ui/home/homescreen.dart';
@@ -174,10 +175,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
           statusBarBrightness: Brightness.dark,
           systemNavigationBarIconBrightness: Brightness.light,
         ),
-        // child: TrainingScreen(),
-        child: HomeScreen(),
+        child: const ModeSelectScreen(),
       ),
       routes: <String, WidgetBuilder>{
+        '/modeSelect': (BuildContext context) => const ModeSelectScreen(),
         '/homeScreen': (BuildContext context) => const HomeScreen(),
         '/learnScreen': (BuildContext context) => const LearnScreen(),
         '/countScreen': (BuildContext context) => const CountScreen(),

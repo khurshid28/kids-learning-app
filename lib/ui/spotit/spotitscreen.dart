@@ -7,6 +7,8 @@ import 'package:learn_numbers_flutter/ui/quizscreen/quizscreen.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -20,6 +22,7 @@ class SpotItScreen extends StatefulWidget {
 }
 
 class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMixin{
+  bool _isLettersMode = false;
   List<NumbersData> answerNumbersList = [];
   int? questionNumber = 0;
   List<bool> totalRightAnswer = [];
@@ -32,11 +35,36 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _generateNumbers();
     _createBottomBannerAd();
     _generateRightWrongAnswerList();
     controller = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this);
     super.initState();
+  }
+
+  /// Center image shown in the SpotIt widget.
+  String _centerImage() {
+    if (_isLettersMode) {
+      return LettersData.iconPath(LettersData.letters[questionNumber! - 1]);
+    }
+    return 'assets/images/count/imgCount/count_$questionNumber.webp';
+  }
+
+  /// Sound for the answer at [count] (1-based).
+  String _soundForCount(int count) {
+    if (_isLettersMode) {
+      return LettersData.soundPath(LettersData.letters[count - 1]);
+    }
+    return 'assets/sounds/learn/n_$count.mp3';
+  }
+
+  /// Icon image for answer option at [count] (1-based).
+  String _iconForCount(int count) {
+    if (_isLettersMode) {
+      return LettersData.iconPath(LettersData.letters[count - 1]);
+    }
+    return 'assets/icons/learn/numbers/b$count.webp';
   }
 
 
@@ -163,11 +191,7 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
             alignment: Alignment.center,
             children: [
               Image.asset("assets/images/spotit/number_bg.webp", scale: 5),
-              Image.asset(
-                  "assets/images/count/imgCount/count_" +
-                      questionNumber.toString() +
-                      ".webp",
-                  scale: 4),
+              Image.asset(_centerImage(), scale: 4),
             ],
           ),
         ),
@@ -218,7 +242,7 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
             if(indexOfEgg == -1){
               indexOfEgg = 0;
             }
-            Utils.playSound("assets/sounds/learn/n_"+answerNumbersList[index].count.toString()+".mp3");
+            Utils.playSound(_soundForCount(answerNumbersList[index].count!));
             Future.delayed(const Duration(milliseconds: 500),(){
               Utils.playSound("assets/sounds/spotit/egg_crack.mp3");
             });
@@ -243,9 +267,7 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
       },
       child: Padding(
         padding: EdgeInsets.all(Sizes.height_2),
-        child: Image.asset("assets/icons/learn/numbers/b" +
-            answerNumbersList[index].count.toString() +
-            ".webp"),
+        child: Image.asset(_iconForCount(answerNumbersList[index].count!)),
       ),
     );
   }
@@ -254,6 +276,7 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
     isShowList = 1.0;
     answerNumbersList.clear();
 
+    final int maxVal = _isLettersMode ? 26 : 20;
     var totalAnswer = totalRightAnswer.where((element) => element == true).toList().length;
     if(totalAnswer == 5){
       indexOfEgg = 0;
@@ -261,9 +284,8 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
       _generateRightWrongAnswerList();
     }
 
-    var listOfNumbers = Utils.getListOfRandomNumbers(20, 4);
+    var listOfNumbers = Utils.getListOfRandomNumbers(maxVal, 4);
     for (int j = 0; j < 4; j++) {
-
       if(j == 1){
         answerNumbersList.add(NumbersData(listOfNumbers[j], true, 0));
         questionNumber = listOfNumbers[j];
@@ -272,14 +294,7 @@ class _SpotItScreenState extends State<SpotItScreen> with TickerProviderStateMix
       }
     }
     answerNumbersList.shuffle();
-    for (var element in answerNumbersList) {
-      Debug.printLog("answerList spot It==>>> " +
-          element.count.toString() +
-          " " +
-          element.onTapRightAnswer.toString());
-    }
     setState(() {});
-
   }
 
   _generateRightWrongAnswerList(){

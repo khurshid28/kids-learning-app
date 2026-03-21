@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:math';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:lottie/lottie.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ class SequenceScreen extends StatefulWidget {
 
 class _SequenceScreenState extends State<SequenceScreen> {
 
+  bool _isLettersMode = false;
   List<SequenceNumberData> sequenceNumberList = [];
   List<SequenceNumberData> answerNumbersList = [];
   bool isLottieLoad = false;
@@ -31,9 +34,26 @@ class _SequenceScreenState extends State<SequenceScreen> {
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _generateSequence();
     _createBottomBannerAd();
     super.initState();
+  }
+
+  /// Returns image asset for a sequence item (count is 1-based index).
+  String _imageForCount(int count) {
+    if (_isLettersMode) {
+      return LettersData.iconPath(LettersData.letters[count - 1]);
+    }
+    return 'assets/images/count/imgCount/count_$count.webp';
+  }
+
+  /// Returns sound asset for a sequence item (count is 1-based index).
+  String _soundForCount(int count) {
+    if (_isLettersMode) {
+      return LettersData.soundPath(LettersData.letters[count - 1]);
+    }
+    return 'assets/sounds/learn/n_$count.mp3';
   }
 
 
@@ -169,12 +189,13 @@ class _SequenceScreenState extends State<SequenceScreen> {
     answerNumbersList.clear();
 
     Utils.playSound("assets/sounds/sequence/completepatt.mp3");
+    final int maxStart = _isLettersMode ? 24 : 17;
+    final int maxRand = _isLettersMode ? 26 : 20;
     var rng = Random();
-    var generateRandomNumber = rng.nextInt(17);
+    var generateRandomNumber = rng.nextInt(maxStart);
     if(generateRandomNumber == 0){
       generateRandomNumber++;
     }
-    // sequenceNumberList.add(SequenceNumberData(generateRandomNumber, false,false));
     Debug.printLog("_generateSequence Start==>>> "+generateRandomNumber.toString());
     for(int i = 0;i < 3;i++){
       generateRandomNumber++;
@@ -183,13 +204,10 @@ class _SequenceScreenState extends State<SequenceScreen> {
     }
     var indexForChangeVal = RandomInt.generate(max: 2, min: 0);
     sequenceNumberList[indexForChangeVal].isMissing = true;
-    for (var element in sequenceNumberList) {
-      Debug.printLog("sequenceNumberList==>>> "+indexForChangeVal.toString()+" "+element.count.toString()+" "+element.isMissing.toString() );
-    }
     var missingData = sequenceNumberList.where((element) => element.isMissing == true).toList();
     answerNumbersList.addAll(missingData);
     for (int j = 0; j < 3; j++) {
-      var randomNumber = RandomInt.generate(max: 20,min: 1);
+      var randomNumber = RandomInt.generate(max: maxRand, min: 1);
       var missingNumber = sequenceNumberList.where((element) => element.isMissing == true).toList();
       if(missingNumber[0].count == randomNumber){
         randomNumber++;
@@ -197,10 +215,6 @@ class _SequenceScreenState extends State<SequenceScreen> {
       answerNumbersList.add(SequenceNumberData(randomNumber, false,false));
     }
     answerNumbersList.shuffle();
-    for (var element in answerNumbersList) {
-      Debug.printLog("answerList==>>> "+element.count.toString()+" "+element.isMissing.toString() );
-    }
-
   }
 
   _itemSequenceNumber(int index, BuildContext context) {
@@ -212,9 +226,7 @@ class _SequenceScreenState extends State<SequenceScreen> {
           : Alignment.center,
       child: (sequenceNumberList[index].isMissing)?
           Image.asset("assets/icons/sequence/ic_question_mark.webp")
-          :Image.asset("assets/images/count/imgCount/count_" +
-          sequenceNumberList[index].count.toString() +
-          ".webp"),
+          :Image.asset(_imageForCount(sequenceNumberList[index].count!)),
     );
   }
 
@@ -224,7 +236,7 @@ class _SequenceScreenState extends State<SequenceScreen> {
         var missingWidgetIndex = sequenceNumberList.indexWhere((element) => element.isMissing == true);
 
         if(answerNumbersList[index].isMissing == true && missingWidgetIndex != -1){
-          Utils.playSound("assets/sounds/learn/n_"+answerNumbersList[index].count.toString()+".mp3");
+          Utils.playSound(_soundForCount(answerNumbersList[index].count!));
 
           Debug.printLog("_itemAnswerNumbers==>> "+missingWidgetIndex.toString());
           answerNumbersList[index].onTapRightAnswer = true;
@@ -261,9 +273,7 @@ class _SequenceScreenState extends State<SequenceScreen> {
                 ),
                 Padding(
                   padding: EdgeInsets.all(Sizes.height_4),
-                  child: Image.asset("assets/images/count/imgCount/count_" +
-                      answerNumbersList[index].count.toString() +
-                      ".webp"),
+                  child: Image.asset(_imageForCount(answerNumbersList[index].count!)),
                 ),
               ],
             )

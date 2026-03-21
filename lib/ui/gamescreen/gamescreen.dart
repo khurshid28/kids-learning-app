@@ -6,6 +6,8 @@ import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:lottie/lottie.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
@@ -21,6 +23,7 @@ class GameScreen extends StatefulWidget {
 class _GameScreenState extends State<GameScreen> {
   List<GameNumbersData> numbersList = [];
   bool isLottieLoad = false;
+  bool _isLettersMode = false;
 
   late BannerAd _bottomBannerAd;
   bool _isBottomBannerAdLoaded = false;
@@ -28,6 +31,7 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _generateNumbers();
     _createBottomBannerAd();
     super.initState();
@@ -113,7 +117,7 @@ class _GameScreenState extends State<GameScreen> {
               margin: EdgeInsets.only(right: Sizes.width_15),
               alignment: Alignment.center,
               child: AutoSizeText(
-                Languages.of(context)!.txtClickInSeq,
+                _isLettersMode ? 'Tap A → B → C in order' : Languages.of(context)!.txtClickInSeq,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: "MochiyPop",
@@ -134,12 +138,11 @@ class _GameScreenState extends State<GameScreen> {
       child:
       (isLottieLoad)?Lottie.asset('assets/animations/lottie/congrats.json')
       :GridView.builder(
-          shrinkWrap: true,
           scrollDirection: Axis.vertical,
-          // physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount:5,
-              childAspectRatio: 1),
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _isLettersMode ? 9 : 5,
+              childAspectRatio: _isLettersMode ? 1.15 : 1),
           itemCount: numbersList.length,
           itemBuilder: (BuildContext context, int index) {
             return _itemSequenceNumber(index, context);
@@ -154,7 +157,11 @@ class _GameScreenState extends State<GameScreen> {
           if(numbersList[index].isShow && numbersList[index].isClickTime) {
 
             Utils.playSound("assets/sounds/game/blast.mp3");
-            Utils.playSound("assets/sounds/learn/n_"+numbersList[index].count.toString()+".mp3");
+            if (_isLettersMode) {
+              Utils.playSound(LettersData.soundPath(LettersData.letters[numbersList[index].count! - 1]));
+            } else {
+              Utils.playSound("assets/sounds/learn/n_" + numbersList[index].count.toString() + ".mp3");
+            }
 
             var clickCountNumber = numbersList[index].count;
             var nextCountIndex = numbersList.indexWhere((element) => element.count == (clickCountNumber!+1));
@@ -187,29 +194,37 @@ class _GameScreenState extends State<GameScreen> {
       child: Opacity(
         opacity: numbersList[index].isShow?1:0,
         child: Container(
-          alignment: (index == 1 || index == 3 || index == 6 || index == 8)
-              ? Alignment.bottomCenter
-              : Alignment.topCenter,
-          margin: EdgeInsets.only(
-              bottom: Sizes.height_2,
-              top: Sizes.height_1,),
+          alignment: _isLettersMode
+              ? (index.isOdd ? Alignment.bottomCenter : Alignment.topCenter)
+              : (index == 1 || index == 3 || index == 6 || index == 8)
+                  ? Alignment.bottomCenter
+                  : Alignment.topCenter,
+          margin: _isLettersMode
+              ? EdgeInsets.only(bottom: Sizes.height_0_5, top: Sizes.height_0_5)
+              : EdgeInsets.only(bottom: Sizes.height_1, top: Sizes.height_0_5,),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              Image.asset(
-                "assets/icons/game/bubble_" + numbersList[index].count.toString() + ".webp",
-                scale: 6,
-              ),
-              AutoSizeText(
-                numbersList[index].count.toString(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: "MochiyPop",
-                  fontWeight: FontWeight.w400,
-                  color: CColor.white,
-                  fontSize: FontSize.size_25,
-                ),
-              )
+              _isLettersMode
+                  ? Image.asset(
+                      LettersData.iconPath(LettersData.letters[numbersList[index].count! - 1]),
+                      scale: 3,
+                    )
+                  : Image.asset(
+                      "assets/icons/game/bubble_" + numbersList[index].count.toString() + ".webp",
+                      scale: 6,
+                    ),
+              if (!_isLettersMode)
+                AutoSizeText(
+                  numbersList[index].count.toString(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: "MochiyPop",
+                    fontWeight: FontWeight.w400,
+                    color: CColor.white,
+                    fontSize: FontSize.size_25,
+                  ),
+                )
             ],
           ),
         ),
@@ -218,7 +233,8 @@ class _GameScreenState extends State<GameScreen> {
   }
   _generateNumbers(){
     numbersList.clear();
-    for (int j = 1; j <= 10; j++) {
+    final int maxVal = _isLettersMode ? 26 : 10;
+    for (int j = 1; j <= maxVal; j++) {
       numbersList.add(GameNumbersData(j,true,(j == 1)?true:false));
     }
     numbersList.shuffle();

@@ -5,6 +5,8 @@ import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/constant.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -19,15 +21,15 @@ class WriteScreen extends StatefulWidget {
 
 class _WriteScreenState extends State<WriteScreen> {
   TextEditingController? _editingController;
+  bool _isLettersMode = false;
 
   late BannerAd _bottomBannerAd;
   bool _isBottomBannerAdLoaded = false;
 
-
-
   @override
   void initState() {
     _editingController = TextEditingController();
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _createBottomBannerAd();
     super.initState();
   }
@@ -144,10 +146,119 @@ class _WriteScreenState extends State<WriteScreen> {
   }
 
   _setTextOnBoard(String value) {
-    if (value != Constant.strDas) {
-      Utils.playSound("assets/sounds/learn/n_" + value + ".mp3");
+    if (_isLettersMode) {
+      if (value.isNotEmpty && value != ' ') {
+        Utils.playSound(LettersData.soundPath(value.toLowerCase()));
+      }
+    } else {
+      if (value != Constant.strDas) {
+        Utils.playSound("assets/sounds/learn/n_" + value + ".mp3");
+      }
     }
-    _editingController!.text = _editingController!.text + "" + value;
+    _editingController!.text = _editingController!.text + value;
+  }
+
+  Widget _letterKey(String letter) {
+    return InkWell(
+      onTap: () => _setTextOnBoard(letter),
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        width: 42,
+        height: 38,
+        decoration: BoxDecoration(
+          color: Colors.orange.shade600,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2))],
+        ),
+        child: Center(
+          child: Text(
+            letter,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontFamily: 'MochiyPop',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _letterKeyboard() {
+    final rows = [
+      ['Q','W','E','R','T','Y','U','I','O','P'],
+      ['A','S','D','F','G','H','J','K','L'],
+      ['Z','X','C','V','B','N','M'],
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ...rows.map((row) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: row.map((l) => _letterKey(l)).toList(),
+                ),
+              )),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    InkWell(
+                      onTap: () => _setTextOnBoard(' '),
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        width: 140,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade400,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2))],
+                        ),
+                        child: const Center(
+                          child: Text('SPACE',
+                            style: TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'MochiyPop'),
+                          ),
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        if (_editingController!.text.isNotEmpty) {
+                          _editingController!.text = _editingController!.text
+                              .substring(0, _editingController!.text.length - 1);
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.all(2),
+                        width: 80,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade400,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2))],
+                        ),
+                        child: const Center(child: Icon(Icons.backspace_rounded, color: Colors.white, size: 22)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   _widgetCenterView() {
@@ -167,6 +278,15 @@ class _WriteScreenState extends State<WriteScreen> {
               child: _editTextField(),
             ),
           ),
+          if (_isLettersMode)
+            Expanded(
+              flex: 3,
+              child: Container(
+                margin: EdgeInsets.only(top: Sizes.height_1, bottom: Sizes.height_2, right: Sizes.width_2),
+                child: _letterKeyboard(),
+              ),
+            )
+          else
           Container(
             margin:
                 EdgeInsets.only(top: Sizes.height_1, bottom: Sizes.height_2),

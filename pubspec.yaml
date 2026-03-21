@@ -142,6 +142,9 @@ flutter:
      - assets/sounds/sequence/
      - assets/sounds/game/
      - assets/sounds/train/
+     - assets/icons/learn/letters/
+     - assets/sounds/learn/letters/
+     - assets/images/letters/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

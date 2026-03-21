@@ -6,6 +6,8 @@ import 'package:learn_numbers_flutter/localization/language/languages.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:sizer/sizer.dart';
@@ -24,7 +26,8 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
 
   List<int> rands = [];
   final _random = Random();
-  var quizAnswer =0;
+  var quizAnswer = 0;
+  bool _isLettersMode = false;
   FlutterTts flutterTts = FlutterTts();
   String strTap = "";
   AnimationController? shakeController1;
@@ -86,6 +89,7 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
                 Column(
                   children: [
                     _widgetTopView(),
+                    if (_isLettersMode) _widgetLetterQuestionBanner(),
                     _widgetCenterView(),
                     (_isBottomBannerAdLoaded)
                         ? SizedBox(
@@ -125,22 +129,79 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
             child: Container(
               margin: EdgeInsets.only(right: Sizes.width_15),
               alignment: Alignment.center,
-              child: AutoSizeText(
-                Languages.of(context)!.txtTouch+" "+quizAnswer.toString(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: "MochiyPop",
-                  fontWeight: FontWeight.w400,
-                  color: CColor.black,
-                  fontSize: FontSize.size_20,
-                ),
-              ),
+              child: _isLettersMode
+                  ? AutoSizeText(
+                      'Which letter?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: "MochiyPop",
+                        fontWeight: FontWeight.w400,
+                        color: CColor.black,
+                        fontSize: FontSize.size_20,
+                      ),
+                    )
+                  : AutoSizeText(
+                      Languages.of(context)!.txtTouch + " " + _quizAnswerLabel,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: "MochiyPop",
+                        fontWeight: FontWeight.w400,
+                        color: CColor.black,
+                        fontSize: FontSize.size_20,
+                      ),
+                    ),
             ),
           ),
         ],
       ),
     );
   }
+
+  Widget _widgetLetterQuestionBanner() {
+    if (quizAnswer < 1 || quizAnswer > 26) return const SizedBox.shrink();
+    final letter = LettersData.letters[quizAnswer - 1];
+    final objImg  = LettersData.letterObjects[letter]!;
+    return GestureDetector(
+      onTap: () => Utils.textToSpeech(letter.toUpperCase(), flutterTts),
+      child: Container(
+        margin: EdgeInsets.symmetric(horizontal: Sizes.width_5, vertical: Sizes.height_1),
+        padding: EdgeInsets.symmetric(horizontal: Sizes.width_6, vertical: Sizes.height_1_5),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.85),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: CColor.orange, width: 4),
+          boxShadow: const [
+            BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(objImg, height: Sizes.height_8),
+            SizedBox(width: Sizes.width_4),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.volume_up_rounded, color: CColor.orange, size: Sizes.height_4),
+                SizedBox(height: Sizes.height_0_5),
+                Text(
+                  '?',
+                  style: TextStyle(
+                    fontFamily: 'MochiyPop',
+                    fontSize: FontSize.size_30,
+                    color: CColor.black,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _letterQuestionBanner() => const SizedBox.shrink();
 
   void _createBottomBannerAd() {
     _bottomBannerAd = BannerAd(
@@ -167,6 +228,7 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _createBottomBannerAd();
     shakeController1 = AnimationController(duration: const Duration(milliseconds: 500), vsync: this);
     shakeController2 = AnimationController(duration: const Duration(milliseconds: 500), vsync: this);
@@ -175,81 +237,140 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
     super.initState();
   }
 
+  /// Returns the image asset path for a quiz option (rand is 1-based index).
+  String _imageForRand(int rand) {
+    if (_isLettersMode) {
+      final l = LettersData.letters[rand - 1];
+      return LettersData.iconPath(l);
+    }
+    return 'assets/images/count/imgCount/count_$rand.webp';
+  }
+
+  /// Returns the display label for the quiz answer.
+  String get _quizAnswerLabel {
+    if (_isLettersMode) return LettersData.letters[quizAnswer - 1].toUpperCase();
+    return quizAnswer.toString();
+  }
+
   _widgetCenterView() {
 
     return Expanded(
-      child: Row(
-        children: [
-          Expanded(
-            child: AnimatedBuilder(
-              animation: offsetAnimation1!,
-              builder: (buildContext, child) {
-                return  InkWell(
-                  onTap: () {
-                    tapOnAnswer(0);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.only(
-                      left:(Platform.isIOS)?offsetAnimation1!.value + 50.0:offsetAnimation1!.value +10.0,
-                      right: (Platform.isIOS)?50.0 - offsetAnimation1!.value:10.0 -offsetAnimation1!.value ,
-                    ),
-                    child: Image.asset(
-                      "assets/images/count/imgCount/count_"+rands[0].toString()+".webp",
-                      scale: 2,
-                    ),
+      child: _isLettersMode
+          ? _letterChoicesView()
+          : Row(
+              children: [
+                Expanded(
+                  child: AnimatedBuilder(
+                    animation: offsetAnimation1!,
+                    builder: (buildContext, child) {
+                      return InkWell(
+                        onTap: () { tapOnAnswer(0); },
+                        child: Container(
+                          padding: EdgeInsets.only(
+                            left:(Platform.isIOS)?offsetAnimation1!.value + 50.0:offsetAnimation1!.value +10.0,
+                            right: (Platform.isIOS)?50.0 - offsetAnimation1!.value:10.0 -offsetAnimation1!.value,
+                          ),
+                          child: Image.asset(_imageForRand(rands[0]), scale: 2),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+                Expanded(
+                  child: AnimatedBuilder(
+                    animation: offsetAnimation2!,
+                    builder: (buildContext, child) {
+                      return InkWell(
+                        onTap: () { tapOnAnswer(1); },
+                        child: Container(
+                          padding: EdgeInsets.only(
+                            left:(Platform.isIOS)? offsetAnimation2!.value + 50.0:offsetAnimation2!.value +10.0,
+                            right: (Platform.isIOS)?50.0 - offsetAnimation2!.value:10.0 -offsetAnimation2!.value,
+                          ),
+                          child: Image.asset(_imageForRand(rands[1]), scale: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: AnimatedBuilder(
+                    animation: offsetAnimation3!,
+                    builder: (buildContext, child) {
+                      return InkWell(
+                        onTap: () { tapOnAnswer(2); },
+                        child: Container(
+                          padding: EdgeInsets.only(
+                            left:(Platform.isIOS)? offsetAnimation3!.value + 50.0:offsetAnimation3!.value +10.0,
+                            right: (Platform.isIOS)?50.0 - offsetAnimation3!.value:10.0 -offsetAnimation3!.value,
+                          ),
+                          child: Image.asset(_imageForRand(rands[2]), scale: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
+    );
+  }
 
-          Expanded(
-            child: AnimatedBuilder(
-              animation: offsetAnimation2!,
-              builder: (buildContext, child) {
-                return  InkWell(
-                  onTap: () {
-                    tapOnAnswer(1);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.only(
-                      left:(Platform.isIOS)? offsetAnimation2!.value + 50.0:offsetAnimation2!.value +10.0,
-                      right: (Platform.isIOS)?50.0 - offsetAnimation2!.value:10.0 -offsetAnimation2!.value ,
-                    ),
-                    child: Image.asset(
-                      "assets/images/count/imgCount/count_"+rands[1].toString()+".webp",
-                      scale: 2,
+  Widget _letterChoicesView() {
+    final animations = [offsetAnimation1!, offsetAnimation2!, offsetAnimation3!];
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: List.generate(3, (i) {
+        final letter = LettersData.letters[rands[i] - 1];
+        return Expanded(
+          child: AnimatedBuilder(
+            animation: animations[i],
+            builder: (ctx, child) {
+              final offset = animations[i].value;
+              return InkWell(
+                onTap: () => tapOnAnswer(i),
+                child: Container(
+                  margin: EdgeInsets.symmetric(
+                      horizontal: Sizes.width_3, vertical: Sizes.height_1_5),
+                  transform: Matrix4.translationValues(offset, 0, 0),
+                  decoration: BoxDecoration(
+                    color: CColor.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: CColor.orange, width: 5),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 4))
+                    ],
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.contain,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Image.asset(
+                          LettersData.iconPath(letter),
+                          height: Sizes.height_17,
+                        ),
+                        SizedBox(height: Sizes.height_1),
+                        Text(
+                          letter.toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: 'MochiyPop',
+                            fontSize: FontSize.size_25,
+                            color: CColor.black,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
           ),
-
-          Expanded(
-            child: AnimatedBuilder(
-              animation: offsetAnimation3!,
-              builder: (buildContext, child) {
-                return  InkWell(
-                  onTap: () {
-                    tapOnAnswer(2);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.only(
-                      left:(Platform.isIOS)? offsetAnimation3!.value + 50.0:offsetAnimation3!.value +10.0,
-                      right: (Platform.isIOS)?50.0 - offsetAnimation3!.value:10.0 -offsetAnimation3!.value ,
-                    ),
-                    child: Image.asset(
-                      "assets/images/count/imgCount/count_"+rands[2].toString()+".webp",
-                      scale: 2,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+        );
+      }),
     );
   }
 
@@ -274,21 +395,23 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
     }
   }
 
-  generateQuiz(){
+  generateQuiz() {
+    final int maxVal = _isLettersMode ? 26 : 20;
     rands.clear();
-    for (int j = 0; j < 3; j++) {
-      var randomNumber = RandomInt.generate(max: 20,min: 1);
-      if(rands.isNotEmpty && !rands.contains(randomNumber)) {
-        rands.add(randomNumber);
-      }else{
-        rands.add(RandomInt.generate(max: 20,min: 1));
+    final Set<int> used = {};
+    while (rands.length < 3) {
+      final n = RandomInt.generate(max: maxVal, min: 1);
+      if (!used.contains(n)) {
+        used.add(n);
+        rands.add(n);
       }
     }
     quizAnswer = rands[_random.nextInt(rands.length)];
-    setState(() {
-
-    });
-    Debug.printLog("New Quiz==>> "+quizAnswer.toString());
+    setState(() {});
+    if (_isLettersMode) {
+      Utils.textToSpeech(LettersData.letters[quizAnswer - 1].toUpperCase(), flutterTts);
+    }
+    Debug.printLog("New Quiz==>> " + quizAnswer.toString());
   }
 
   setStrTap(String value){

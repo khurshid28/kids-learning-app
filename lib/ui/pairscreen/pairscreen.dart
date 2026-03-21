@@ -1,9 +1,12 @@
 import 'dart:io';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
+import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:lottie/lottie.dart';
 import 'package:learn_numbers_flutter/utils/constant.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:sizer/sizer.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +22,20 @@ class PairScreen extends StatefulWidget {
 }
 
 class _PairScreenState extends State<PairScreen> {
+  static const List<List<Color>> _letterBgGradients = [
+    [Color(0xFFFFF9C4), Color(0xFFFFE082)],
+    [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
+    [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
+    [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+    [Color(0xFFFCE4EC), Color(0xFFF8BBD9)],
+    [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+    [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+    [Color(0xFFF9FBE7), Color(0xFFF0F4C3)],
+    [Color(0xFFE8EAF6), Color(0xFFC5CAE9)],
+    [Color(0xFFFBE9E7), Color(0xFFFFCCBC)],
+  ];
+  int _bgColorIndex = 0;
+  bool _isLettersMode = false;
   List<int> pairsArrayInt = [];
   List<PairData> pairsArray = [];
   double? itemHeight;
@@ -56,9 +73,26 @@ class _PairScreenState extends State<PairScreen> {
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     generatePairs();
     _createBottomBannerAd();
     super.initState();
+  }
+
+  /// Icon asset for a pair card (count is 1-based index).
+  String _iconPath(int count) {
+    if (_isLettersMode) {
+      return LettersData.iconPath(LettersData.letters[count - 1]);
+    }
+    return 'assets/icons/learn/numbers/b$count.webp';
+  }
+
+  /// Sound asset for a pair card (count is 1-based index).
+  String _soundPath(int count) {
+    if (_isLettersMode) {
+      return LettersData.soundPath(LettersData.letters[count - 1]);
+    }
+    return 'assets/sounds/learn/n_$count.mp3';
   }
 
   @override
@@ -75,12 +109,25 @@ class _PairScreenState extends State<PairScreen> {
               DeviceType deviceType) {
             return Stack(
               children: [
-                Image.asset(
-                  "assets/images/pair/pair_bg.webp",
-                  fit: BoxFit.cover,
-                  height: double.infinity,
-                  width: double.infinity,
-                ),
+                _isLettersMode
+                    ? Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: _letterBgGradients[
+                                _bgColorIndex % _letterBgGradients.length],
+                          ),
+                        ),
+                      )
+                    : Image.asset(
+                        "assets/images/pair/pair_bg.webp",
+                        fit: BoxFit.cover,
+                        height: double.infinity,
+                        width: double.infinity,
+                      ),
                 Column(
                   children: [
                     _widgetTopView(),
@@ -131,12 +178,13 @@ class _PairScreenState extends State<PairScreen> {
   Widget _buildGameBody() {
     return GridView.builder(
       scrollDirection: Axis.vertical,
-      shrinkWrap: true,padding:EdgeInsets.symmetric(horizontal: Sizes.width_60,vertical: Sizes.height_0),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: pairsArray.length ~/ 4,
-        childAspectRatio: 16/15.5,
-        mainAxisSpacing: Sizes.height_0_5,
-        crossAxisSpacing: Sizes.width_0_5
+      shrinkWrap: true,
+      padding: EdgeInsets.symmetric(horizontal: Sizes.width_5, vertical: Sizes.height_1),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 5,
+        childAspectRatio: 1,
+        mainAxisSpacing: 6,
+        crossAxisSpacing: 6,
       ),
       itemBuilder: (context, index) {
         return _itemView(index);
@@ -153,9 +201,7 @@ class _PairScreenState extends State<PairScreen> {
         }
         if(lastTouch != pairsArray[index].count! && lastTouch != 0) {
           Utils.playSoundTouchNumber("assets/sounds/touch.mp3").then((value) =>
-              Utils.playSoundTouchNumber
-                ("assets/sounds/learn/n_" + lastTouch.toString() +
-                  ".mp3")
+              Utils.playSoundTouchNumber(_soundPath(lastTouch))
           );
         }else if(lastTouch == pairsArray[index].count! &&  lastTouch != 0){
           setState(() {
@@ -178,8 +224,7 @@ class _PairScreenState extends State<PairScreen> {
           }
         }
         else{
-          Utils.playSound("assets/sounds/learn/n_" + pairsArray[index].count!.toString() +
-              ".mp3");
+          Utils.playSound(_soundPath(pairsArray[index].count!));
           lastTouch = pairsArray[index].count!;
           setState(() {
             pairsArray[index].isSelect = true;
@@ -189,9 +234,9 @@ class _PairScreenState extends State<PairScreen> {
       child: Opacity(
         opacity: (pairsArray[index].isSelect == false)?1:0,
         child: Image.asset(
-          "assets/icons/learn/numbers/b"+pairsArray[index].count.toString()+".webp",
-          width: Sizes.height_8,
-          height: Sizes.height_8,
+          _iconPath(pairsArray[index].count!),
+          width: Sizes.height_7,
+          height: Sizes.height_7,
         ),
       ),
     );
@@ -200,10 +245,16 @@ class _PairScreenState extends State<PairScreen> {
   generatePairs() {
     pairsArray.clear();
     pairsArrayInt.clear();
-    var firstArray = List.generate(Constant.totalPairs, (index) => index + 1)
-      ..shuffle();
-    var secondArray = List.generate(Constant.totalPairs, (index) => index + 1)
-      ..shuffle();
+    _bgColorIndex++;
+    const int total = Constant.totalPairs; // 10 pairs for both modes
+    List<int> firstArray;
+    if (_isLettersMode) {
+      final allIndices = List.generate(LettersData.letters.length, (i) => i + 1)..shuffle();
+      firstArray = allIndices.sublist(0, total);
+    } else {
+      firstArray = List.generate(total, (index) => index + 1)..shuffle();
+    }
+    var secondArray = [...firstArray]..shuffle();
 
     pairsArrayInt.addAll(firstArray);
     pairsArrayInt.addAll(secondArray);

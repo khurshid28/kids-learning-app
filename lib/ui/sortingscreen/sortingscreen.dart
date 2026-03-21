@@ -7,6 +7,8 @@ import 'package:learn_numbers_flutter/localization/language/languages.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -20,6 +22,7 @@ class SortingScreen extends StatefulWidget {
 
 class _SortingScreenState extends State<SortingScreen> {
 
+  bool _isLettersMode = false;
   List<DraggableNumbersData> draggableNumbers = [];
   var quizAnswer = 0;
   var selectedIndex = 0;
@@ -62,6 +65,10 @@ class _SortingScreenState extends State<SortingScreen> {
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    if (_isLettersMode) {
+      totalNumbers = LettersData.iconMap;
+    }
     generateNumbers();
     _createBottomBannerAd();
     super.initState();
@@ -151,7 +158,9 @@ class _SortingScreenState extends State<SortingScreen> {
               margin: EdgeInsets.only(right: Sizes.width_15),
               alignment: Alignment.center,
               child: AutoSizeText(
-                Languages.of(context)!.txtArrangeTheNumber,
+                _isLettersMode
+                    ? 'Arrange the letters A to Z'
+                    : Languages.of(context)!.txtArrangeTheNumber,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: "MochiyPop",
@@ -199,7 +208,11 @@ class _SortingScreenState extends State<SortingScreen> {
           setState(() {
             isDrag = true;
             current = totalNumbers[option[index]];
-            Utils.playSound("assets/sounds/learn/n_"+current.toString().split("assets/icons/learn/numbers/b")[1].replaceAll(".webp", "")+".mp3");
+            if (_isLettersMode) {
+              Utils.playSound(LettersData.soundPath(option[index]));
+            } else {
+              Utils.playSound("assets/sounds/learn/n_"+current.toString().split("assets/icons/learn/numbers/b")[1].replaceAll(".webp", "")+".mp3");
+            }
             Debug.printLog("current: " +current!);
           });
         },
@@ -284,9 +297,7 @@ class _SortingScreenState extends State<SortingScreen> {
                       left: Sizes.width_1_5,
                     ),
                     child:(que[index].isAnswered)? Image.asset(
-                      "assets/icons/learn/numbers/b"
-                          +que[index].imageName!.split("assets/icons/learn/numbers/b")[1].toString(),
-                      // que[index],
+                      que[index].imageName!,
                       fit: BoxFit.cover,
                       height: Sizes.height_10,
                     ):Image.asset(
@@ -365,17 +376,15 @@ class _SortingScreenState extends State<SortingScreen> {
     option = totalNumbers.keys.toList().sample(3);
     Debug.printLog("New Matching Numbers==>> " +option.toString());
     for (var element in option) {
-      que.add(DraggableNumbersData(int.parse(element), totalNumbers[element]!,false));
+      final int sortKey = _isLettersMode
+          ? LettersData.letters.indexOf(element) + 1
+          : int.parse(element);
+      que.add(DraggableNumbersData(sortKey, totalNumbers[element]!, false));
       Debug.printLog("Total Numbers Element==>>> "+element.toString());
     }
     Comparator<DraggableNumbersData> sortById = (a, b) => a.countSort!.compareTo(b.countSort!);
     que.sort(sortById);
-    // que.shuffle();
-
-
-
     setState(() {});
-
   }
 }
 

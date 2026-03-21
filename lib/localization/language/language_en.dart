@@ -26,7 +26,7 @@ class LanguageEn extends Languages {
   String get txtCountObj => "Count The Objects";
 
   @override
-  String get txtArrangeTheNumber => "Arrage the number of small to big";
+  String get txtArrangeTheNumber => "Arrange the numbers from small to big";
 
   @override
   String get txtAreYouSureYouWantToExit => "Are You Sure You Want To Exit";

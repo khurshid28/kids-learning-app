@@ -30,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
       PageController(initialPage: 0, keepPage: true, viewportFraction: 0.25);
   RateMyApp? rateMyApp;
   bool? isSound;
+  bool _isLettersMode = false;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -125,6 +126,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
 
   _getPreference() {
     isSound = Preference.shared.getBool(Preference.isMusic) ?? true;
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+  }
+
+  /// Returns the card image path — switches to letters variant in letters mode.
+  String _cardImage(String dbPath) {
+    if (!_isLettersMode) return dbPath;
+    return dbPath.replaceFirst(RegExp(r'\.webp$'), '_letters.webp');
   }
 
   @override
@@ -231,6 +239,49 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
               child: Image.asset(
                 "assets/icons/home/ic_rate_us.webp",
                 scale: 6,
+              ),
+            ),
+          ),
+          // Mode switch button
+          GestureDetector(
+            onTap: () {
+              Navigator.pushReplacementNamed(context, '/modeSelect');
+            },
+            child: Container(
+              margin: EdgeInsets.only(left: Sizes.width_2),
+              padding: EdgeInsets.symmetric(
+                  horizontal: Sizes.width_3, vertical: Sizes.height_0_5),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: _isLettersMode
+                      ? [const Color(0xFF26C6DA), const Color(0xFF00ACC1)]
+                      : [const Color(0xFFFFD740), const Color(0xFFFF9800)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: _isLettersMode
+                        ? const Color(0xFF00ACC1).withOpacity(0.5)
+                        : const Color(0xFFFF9800).withOpacity(0.5),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                _isLettersMode ? 'ABC' : '123',
+                style: TextStyle(
+                  fontFamily: 'MochiyPop',
+                  fontSize: FontSize.size_14,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  shadows: const [
+                    Shadow(color: Colors.black26, offset: Offset(0, 1), blurRadius: 2),
+                  ],
+                ),
               ),
             ),
           ),
@@ -395,7 +446,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
                 top: (Platform.isIOS) ? Sizes.height_1 : Sizes.height_0,
               ),
               child: Image.asset(
-                gamesCategoryList[index].image.toString(),
+                _cardImage(gamesCategoryList[index].image.toString()),
                 width: Sizes.width_50,
                 fit: BoxFit.fill,
               ),

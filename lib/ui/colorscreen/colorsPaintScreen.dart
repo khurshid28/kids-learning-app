@@ -16,14 +16,16 @@ import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:learn_numbers_flutter/utils/constant.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:floodfill_image/floodfill_image.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
 
 class ColorsPaintScreen extends StatefulWidget {
   // final String? imgName;
   final List<ColorsPicTable>? colorsPicDataList;
 
   final int? selectedPos;
+  final bool isLettersMode;
 
-  const ColorsPaintScreen({Key? key, this.colorsPicDataList, this.selectedPos})
+  const ColorsPaintScreen({Key? key, this.colorsPicDataList, this.selectedPos, this.isLettersMode = false})
       : super(key: key);
 
   @override
@@ -39,6 +41,7 @@ class _ColorsPaintScreenState extends State<ColorsPaintScreen> {
   bool isVisibleColorWidget = false;
   PageController? pageController;
   Uint8List? imageFile;
+  int _currentPage = 0;
 
   // GlobalKey previewContainer = GlobalKey();
 
@@ -49,6 +52,7 @@ class _ColorsPaintScreenState extends State<ColorsPaintScreen> {
     // imgName = widget.imgName;
     Utils.requestPermission();
     typeOfColor = Constant.typeRound;
+    _currentPage = widget.selectedPos!;
     pageController = PageController(
         initialPage: widget.selectedPos!, keepPage: true, viewportFraction: 1);
     playSoundForNumbers(widget.selectedPos! + 1);
@@ -59,7 +63,12 @@ class _ColorsPaintScreenState extends State<ColorsPaintScreen> {
   }
 
   playSoundForNumbers(int pos) {
-    Utils.playSound("assets/sounds/learn/n_" + pos.toString() + ".mp3");
+    if (widget.isLettersMode) {
+      final letter = LettersData.letters[pos - 1];
+      Utils.playSound(LettersData.soundPath(letter));
+    } else {
+      Utils.playSound("assets/sounds/learn/n_" + pos.toString() + ".mp3");
+    }
   }
 
   @override
@@ -81,6 +90,44 @@ class _ColorsPaintScreenState extends State<ColorsPaintScreen> {
     );
   }
 
+  Widget _letterBadge() {
+    final letter = LettersData.letters[_currentPage];
+    return GestureDetector(
+      onTap: () => playSoundForNumbers(_currentPage + 1),
+      child: Container(
+        margin: EdgeInsets.only(
+            right: Sizes.width_1_5, left: Sizes.width_1_5, top: Sizes.height_1),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              letter.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: FontSize.size_30,
+                fontFamily: 'MochiyPop',
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(
+                      color: Colors.black38,
+                      blurRadius: 4,
+                      offset: Offset(1, 2))
+                ],
+              ),
+            ),
+            SizedBox(height: Sizes.height_0_5),
+            Image.asset(
+              LettersData.letterObjects[letter]!,
+              height: Sizes.height_5,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   _widgetFirstView() {
     return Stack(
       children: [
@@ -91,6 +138,7 @@ class _ColorsPaintScreenState extends State<ColorsPaintScreen> {
         Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
+            if (widget.isLettersMode) Expanded(child: Center(child: _letterBadge())),
             Expanded(
               child: InkWell(
                 onTap: () {
@@ -323,6 +371,7 @@ class _ColorsPaintScreenState extends State<ColorsPaintScreen> {
                   widget.colorsPicDataList![value].previewContainer =
                       GlobalKey();
                   playSoundForNumbers(value + 1);
+                  setState(() { _currentPage = value; });
                 },
                 itemBuilder: (BuildContext context, int itemIndex) {
                   return _itemAllNumbers(context, itemIndex);

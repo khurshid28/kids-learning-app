@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/material.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:lottie/lottie.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
@@ -24,6 +26,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
   var selectedIndex = 0;
 
   bool? isDrag = false;
+
+  bool _isLettersMode = false;
 
   Map<String, String> totalNumbers = {
     "1": "assets/icons/learn/numbers/b1.webp",
@@ -87,9 +91,39 @@ class _MatchingScreenState extends State<MatchingScreen> {
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    if (_isLettersMode) {
+      totalNumbers = LettersData.objectMap;
+    }
     generateNumbers();
     _createBottomBannerAd();
     super.initState();
+  }
+
+  /// Returns the display image shown inside the drag-target box.
+  String _targetDisplayImage(int index) {
+    if (_isLettersMode) {
+      // que[index] = object image path e.g. "assets/images/letters/a.webp"
+      final letter = que[index]
+          .split('assets/images/letters/')
+          .last
+          .replaceAll('.webp', '');
+      return LettersData.iconPath(letter); // show letter badge in target box
+    }
+    // Numbers mode: show count image extracted from icon path
+    return 'assets/images/count/imgCount/count_'
+        + que[index].split('assets/icons/learn/numbers/b').last;
+  }
+
+  /// Sound played when dragging an item.
+  void _playDragSound(String key) {
+    if (_isLettersMode) {
+      Utils.playSound(LettersData.soundPath(key));
+    } else {
+      final iconPath = totalNumbers[key]!;
+      final num = iconPath.split('assets/icons/learn/numbers/b').last.replaceAll('.webp', '');
+      Utils.playSound('assets/sounds/learn/n_$num.mp3');
+    }
   }
 
   @override
@@ -199,11 +233,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
                     left: Sizes.width_1_5,
                   ),
                   child: Image.asset(
-                    "assets/images/count/imgCount/count_"
-                        +que[index].split("assets/icons/learn/numbers/b")[1].toString(),
-                    // que[index],
-                    fit: BoxFit.cover,
-                    height: Sizes.height_4,
+                    _targetDisplayImage(index),
+                    fit: BoxFit.contain,
+                    height: Sizes.height_8,
                   ),
                 ),
               ],
@@ -299,7 +331,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
           setState(() {
             isDrag = true;
             current = totalNumbers[option[index]];
-            Utils.playSound("assets/sounds/learn/n_"+current.toString().split("assets/icons/learn/numbers/b")[1].replaceAll(".webp", "")+".mp3");
+            _playDragSound(option[index]);
             Debug.printLog("current: " +current!);
           });
         },

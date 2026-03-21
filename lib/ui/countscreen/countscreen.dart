@@ -4,7 +4,10 @@ import 'package:learn_numbers_flutter/database/database_helper.dart';
 import 'package:learn_numbers_flutter/database/tables/count_numbers_table.dart';
 import 'package:learn_numbers_flutter/database/tables/learn_numbers_table.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
+import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:sizer/sizer.dart';
@@ -28,6 +31,21 @@ class _CountScreenState extends State<CountScreen> {
   List<LearnNumbersTable> listLearnNumbersData = [];
   bool isClickArrow = false;
   ScrollController bottomScrollController = ScrollController();
+  bool _isLettersMode = false;
+
+  // Pastel background colors that cycle per letter
+  static const List<List<Color>> _letterBgGradients = [
+    [Color(0xFFFFCDD2), Color(0xFFFFEBEE)], // red-pink
+    [Color(0xFFFFCCBC), Color(0xFFFBE9E7)], // deep orange
+    [Color(0xFFFFE0B2), Color(0xFFFFF3E0)], // orange
+    [Color(0xFFFFF9C4), Color(0xFFFFFDE7)], // yellow
+    [Color(0xFFC8E6C9), Color(0xFFE8F5E9)], // green
+    [Color(0xFFB2EBF2), Color(0xFFE0F7FA)], // cyan
+    [Color(0xFFBBDEFB), Color(0xFFE3F2FD)], // blue
+    [Color(0xFFCE93D8), Color(0xFFF3E5F5)], // purple
+    [Color(0xFFF8BBD0), Color(0xFFFCE4EC)], // pink
+    [Color(0xFFB2DFDB), Color(0xFFE0F2F1)], // teal
+  ];
 
   FlutterTts flutterTts = FlutterTts();
   late BannerAd _bottomBannerAd;
@@ -78,17 +96,28 @@ class _CountScreenState extends State<CountScreen> {
               DeviceType deviceType) {
             return Stack(
               children: [
-                Image.asset(
-                  (listCountNumbersData
-                          .isNotEmpty)
-                      ? listCountNumbersData[currentPageValue]
-                          .imgCountBg
-                          .toString()
-                      : "assets/images/count/imgCountBg/counting_bg1.webp",
-                  fit: BoxFit.cover,
-                  height: double.infinity,
-                  width: double.infinity,
-                ),
+                  _isLettersMode
+                      ? AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: _letterBgGradients[
+                                  currentPageValue % _letterBgGradients.length],
+                            ),
+                          ),
+                        )
+                      : Image.asset(
+                          (listCountNumbersData.isNotEmpty)
+                              ? listCountNumbersData[currentPageValue]
+                                  .imgCountBg
+                                  .toString()
+                              : "assets/images/count/imgCountBg/counting_bg1.webp",
+                          fit: BoxFit.cover,
+                          height: double.infinity,
+                          width: double.infinity,
+                        ),
                 Column(
                   children: [
                     _widgetTopView(),
@@ -220,7 +249,7 @@ class _CountScreenState extends State<CountScreen> {
           margin: EdgeInsets.only(left: Sizes.width_10),
           child: Image.asset(
             listCountNumbersData[itemIndex].imgCount.toString(),
-            scale: 2,
+            scale: 1.33,
           ),
         ),
         Expanded(
@@ -230,7 +259,7 @@ class _CountScreenState extends State<CountScreen> {
             },
             child: Image.asset(
               listCountNumbersData[itemIndex].imgCountExample.toString(),
-              scale: 2.5,
+              scale: 1.67,
             ),
           ),
         ),
@@ -239,8 +268,35 @@ class _CountScreenState extends State<CountScreen> {
   }
 
   _getCountNumbersData() async {
-    listLearnNumbersData = await DataBaseHelper().getAllLearnNumberData();
-    listCountNumbersData = await DataBaseHelper().getAllCountNumberData();
+    final isLetters = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    _isLettersMode = isLetters;
+    if (isLetters) {
+      final bgs = [
+        'assets/images/count/imgCountBg/counting_bg1.webp',
+        'assets/images/count/imgCountBg/counting_bg2.webp',
+        'assets/images/count/imgCountBg/counting_bg3.webp',
+        'assets/images/count/imgCountBg/counting_bg4.webp',
+        'assets/images/count/imgCountBg/counting_bg5.webp',
+      ];
+      for (int i = 0; i < LettersData.letters.length; i++) {
+        final l = LettersData.letters[i];
+        listCountNumbersData.add(CountNumbersTable(
+          id: i + 1,
+          imgCount: LettersData.iconPath(l),
+          imgCountExample: LettersData.letterObjects[l],
+          imgCountBg: bgs[i % bgs.length],
+          imgName: l.toUpperCase(),
+        ));
+        listLearnNumbersData.add(LearnNumbersTable(
+          id: i + 1,
+          categoryName: LettersData.iconPath(l),
+          soundName: LettersData.soundPath(l),
+        ));
+      }
+    } else {
+      listLearnNumbersData = await DataBaseHelper().getAllLearnNumberData();
+      listCountNumbersData = await DataBaseHelper().getAllCountNumberData();
+    }
     Debug.printLog(
         "_getCountNumbersData==>> " + listCountNumbersData.length.toString());
     setState(() {});

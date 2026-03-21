@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
+import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 
@@ -17,6 +19,7 @@ class TrainScreen extends StatefulWidget {
 
 class _TrainScreenState extends State<TrainScreen>
     with TickerProviderStateMixin {
+  bool _isLettersMode = false;
   bool? isDrag = false;
   String? current;
 
@@ -57,6 +60,7 @@ class _TrainScreenState extends State<TrainScreen>
 
   @override
   void initState() {
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
     _createBottomBannerAd();
     generateImagesOptions();
     super.initState();

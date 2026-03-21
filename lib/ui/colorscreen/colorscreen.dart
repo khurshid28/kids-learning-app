@@ -6,6 +6,7 @@ import 'package:learn_numbers_flutter/ui/colorscreen/colorsPaintScreen.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
 import 'package:learn_numbers_flutter/utils/debug.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
 import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -20,6 +21,7 @@ class ColorScreen extends StatefulWidget {
 
 class _ColorScreenState extends State<ColorScreen> {
   List<ColorsPicTable> colorsPicDataList = [];
+  bool _isLettersMode = false;
   late BannerAd _bottomBannerAd;
   bool _isBottomBannerAdLoaded = false;
 
@@ -28,7 +30,12 @@ class _ColorScreenState extends State<ColorScreen> {
 
   @override
   void initState() {
-    _getColorsPicsData();
+    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    if (_isLettersMode) {
+      _buildLettersColoringData();
+    } else {
+      _getColorsPicsData();
+    }
     _createBottomBannerAd();
     _createInterstitialAd();
     _getPreference();
@@ -199,6 +206,7 @@ class _ColorScreenState extends State<ColorScreen> {
             builder: (context) => ColorsPaintScreen(
                   colorsPicDataList: colorsPicDataList,
                   selectedPos: pos,
+                  isLettersMode: _isLettersMode,
                 )));
   }
 
@@ -237,6 +245,19 @@ class _ColorScreenState extends State<ColorScreen> {
     colorsPicDataList = await DataBaseHelper().getAllColorsPic();
     Debug.printLog(
         "_getColorsPicsData==>> " + colorsPicDataList.length.toString());
+    setState(() {});
+  }
+
+  void _buildLettersColoringData() {
+    colorsPicDataList = LettersData.letters
+        .asMap()
+        .entries
+        .map((e) => ColorsPicTable(
+              id: e.key,
+              categoryName: 'letters',
+              imgName: 'assets/images/color/lco_${e.value}.png',
+            ))
+        .toList();
     setState(() {});
   }
 }

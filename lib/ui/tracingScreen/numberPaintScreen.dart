@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:learn_numbers_flutter/database/tables/tracing_numbers_table.dart';
 import 'package:learn_numbers_flutter/localization/language/languages.dart';
 import 'package:learn_numbers_flutter/utils/color.dart';
+import 'package:learn_numbers_flutter/utils/letters_data.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:painter/painter.dart';
 import 'package:learn_numbers_flutter/utils/constant.dart';
@@ -20,11 +21,11 @@ import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 class NumberPaintScreen extends StatefulWidget {
   // final String? imgName;
   final List<TracingNumbersTable>? tracingNumberDataList;
-
   final int? selectedPos;
+  final bool isLettersMode;
 
   const NumberPaintScreen(
-      {Key? key, this.tracingNumberDataList, this.selectedPos})
+      {Key? key, this.tracingNumberDataList, this.selectedPos, this.isLettersMode = false})
       : super(key: key);
 
   @override
@@ -63,7 +64,12 @@ class _NumberPaintScreenState extends State<NumberPaintScreen> {
   }
 
   playSoundForNumbers(int pos) {
-    Utils.playSound("assets/sounds/learn/n_" + pos.toString() + ".mp3");
+    if (widget.isLettersMode) {
+      final letter = LettersData.letters[pos - 1];
+      Utils.playSound(LettersData.soundPath(letter));
+    } else {
+      Utils.playSound("assets/sounds/learn/n_" + pos.toString() + ".mp3");
+    }
   }
 
   @override
