@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:learn_numbers_flutter/utils/ad_helper.dart';
@@ -10,6 +11,7 @@ import 'package:learn_numbers_flutter/utils/preference.dart';
 import 'package:learn_numbers_flutter/utils/sizer_utils.dart';
 import 'package:learn_numbers_flutter/utils/utils.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:lottie/lottie.dart';
 
 
 class WriteScreen extends StatefulWidget {
@@ -19,19 +21,102 @@ class WriteScreen extends StatefulWidget {
   _WriteScreenState createState() => _WriteScreenState();
 }
 
-class _WriteScreenState extends State<WriteScreen> {
+class _WriteScreenState extends State<WriteScreen>
+    with SingleTickerProviderStateMixin {
   TextEditingController? _editingController;
   bool _isLettersMode = false;
 
   late BannerAd _bottomBannerAd;
   bool _isBottomBannerAdLoaded = false;
 
+  // ── Letters spelling game state ──
+  String _currentLetter = '';
+  String _currentWord = '';
+  List<String> _wordChars = [];           // correct order
+  List<String> _scrambledChars = [];      // shuffled tiles
+  List<String?> _slots = [];             // placed letters (null = empty)
+  List<bool> _scrambledUsed = [];         // which tiles are used
+  bool _showCongrats = false;
+
+  // Shake animation for wrong answer
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
+  int _shakeSlotIndex = -1;
+
+  static const List<List<Color>> _bgGradients = [
+    [Color(0xFFFFF9C4), Color(0xFFFFE082)],
+    [Color(0xFFE1F5FE), Color(0xFFB3E5FC)],
+    [Color(0xFFF3E5F5), Color(0xFFE1BEE7)],
+    [Color(0xFFE8F5E9), Color(0xFFC8E6C9)],
+    [Color(0xFFFCE4EC), Color(0xFFF8BBD9)],
+    [Color(0xFFFFF3E0), Color(0xFFFFE0B2)],
+    [Color(0xFFE0F2F1), Color(0xFFB2DFDB)],
+    [Color(0xFFF9FBE7), Color(0xFFF0F4C3)],
+  ];
+
+  static const List<Color> _tileColors = [
+    Color(0xFFEF5350),
+    Color(0xFF42A5F5),
+    Color(0xFF66BB6A),
+    Color(0xFFFFA726),
+    Color(0xFFAB47BC),
+    Color(0xFF26C6DA),
+    Color(0xFFEC407A),
+    Color(0xFF8D6E63),
+  ];
+
   @override
   void initState() {
     _editingController = TextEditingController();
-    _isLettersMode = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    _isLettersMode =
+        Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    if (_isLettersMode) _generateWord();
     _createBottomBannerAd();
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 12)
+        .chain(CurveTween(curve: Curves.elasticIn))
+        .animate(_shakeController)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          _shakeController.reverse();
+        }
+        if (status == AnimationStatus.dismissed) {
+          setState(() => _shakeSlotIndex = -1);
+        }
+      });
+
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    _editingController!.dispose();
+    super.dispose();
+  }
+
+  // ── Generate a new word for spelling ──
+  void _generateWord() {
+    final rng = Random();
+    final idx = rng.nextInt(LettersData.letters.length);
+    _currentLetter = LettersData.letters[idx];
+    _currentWord =
+        (LettersData.letterObjectNames[_currentLetter] ?? 'Apple').toUpperCase();
+    _wordChars = _currentWord.split('');
+    _scrambledChars = List.from(_wordChars)..shuffle();
+    // Make sure it's actually shuffled
+    while (_scrambledChars.length > 1 &&
+        _scrambledChars.join() == _wordChars.join()) {
+      _scrambledChars.shuffle();
+    }
+    _slots = List.filled(_wordChars.length, null);
+    _scrambledUsed = List.filled(_wordChars.length, false);
+    _showCongrats = false;
+    setState(() {});
   }
 
 
@@ -61,22 +146,31 @@ class _WriteScreenState extends State<WriteScreen> {
 
 
   @override
-  void dispose() {
-    _editingController!.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          Image.asset(
-            "assets/images/write/bg.webp",
-            fit: BoxFit.fill,
-            height: double.infinity,
-            width: double.infinity,
-          ),
+          _isLettersMode
+              ? Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: _bgGradients[
+                          _currentLetter.isNotEmpty
+                              ? _currentLetter.codeUnitAt(0) % _bgGradients.length
+                              : 0],
+                    ),
+                  ),
+                )
+              : Image.asset(
+                  "assets/images/write/bg.webp",
+                  fit: BoxFit.fill,
+                  height: double.infinity,
+                  width: double.infinity,
+                ),
           SafeArea(
               bottom: (Platform.isIOS) ? false : true,
               top: false,
@@ -85,7 +179,7 @@ class _WriteScreenState extends State<WriteScreen> {
               child: Column(
                 children: [
                   _widgetTopView(),
-                  _widgetCenterView(),
+                  _isLettersMode ? _letterSpellingGame() : _widgetCenterView(),
                   (_isBottomBannerAdLoaded)
                       ? SizedBox(
                     height: _bottomBannerAd.size.height.toDouble(),
@@ -122,6 +216,215 @@ class _WriteScreenState extends State<WriteScreen> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════
+  //  LETTERS MODE — SPELLING GAME
+  // ═══════════════════════════════════════════════════════════════════
+
+  Widget _letterSpellingGame() {
+    if (_showCongrats) {
+      return Expanded(
+        child: Lottie.asset('assets/animations/lottie/congrats.json'),
+      );
+    }
+    return Expanded(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // ── Image + word name ──
+          _spellingHeader(),
+          SizedBox(height: Sizes.height_2),
+          // ── Drop target slots ──
+          _spellingSlots(),
+          SizedBox(height: Sizes.height_3),
+          // ── Scrambled draggable tiles ──
+          _scrambledTiles(),
+        ],
+      ),
+    );
+  }
+
+  /// Top section: object image only (no text)
+  Widget _spellingHeader() {
+    final objectImg = LettersData.letterObjects[_currentLetter];
+    if (objectImg == null) return const SizedBox();
+    return Image.asset(
+      objectImg,
+      height: Sizes.height_12,
+      fit: BoxFit.contain,
+    );
+  }
+
+  /// Row of drop-target slots
+  Widget _spellingSlots() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_wordChars.length, (i) {
+        final filled = _slots[i] != null;
+        final isShaking = _shakeSlotIndex == i;
+        return AnimatedBuilder(
+          animation: _shakeAnimation,
+          builder: (context, child) {
+            double offset = 0;
+            if (isShaking) {
+              offset = sin(_shakeAnimation.value * 3.14 * 2) *
+                  _shakeAnimation.value;
+            }
+            return Transform.translate(
+              offset: Offset(offset, 0),
+              child: child,
+            );
+          },
+          child: DragTarget<int>(
+            onWillAcceptWithDetails: (_) => !filled,
+            onAcceptWithDetails: (details) {
+              _onDropLetter(details.data, i);
+            },
+            builder: (context, candidateData, rejectedData) {
+              final isHovering = candidateData.isNotEmpty;
+              return Container(
+                width: Sizes.height_7,
+                height: Sizes.height_7,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: filled
+                      ? Colors.green.shade100
+                      : isHovering
+                          ? Colors.yellow.shade100
+                          : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: filled
+                        ? Colors.green.shade700
+                        : isHovering
+                            ? Colors.orange
+                            : const Color(0xFF90A4AE),
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  filled ? _slots[i]! : '',
+                  style: TextStyle(
+                    fontFamily: 'MochiyPop',
+                    fontWeight: FontWeight.w700,
+                    fontSize: FontSize.size_22,
+                    color: Colors.green.shade800,
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      }),
+    );
+  }
+
+  /// Scrambled letter tiles (draggable)
+  Widget _scrambledTiles() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(_scrambledChars.length, (i) {
+        if (_scrambledUsed[i]) {
+          // Empty placeholder for used tiles
+          return Container(
+            width: Sizes.height_6,
+            height: Sizes.height_6,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+          );
+        }
+        final color = _tileColors[i % _tileColors.length];
+        return Draggable<int>(
+          data: i,
+          feedback: Material(
+            color: Colors.transparent,
+            child: _buildTileWidget(_scrambledChars[i], color, scale: 1.15),
+          ),
+          childWhenDragging: Container(
+            width: Sizes.height_6,
+            height: Sizes.height_6,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300, width: 2),
+            ),
+          ),
+          child: _buildTileWidget(_scrambledChars[i], color),
+        );
+      }),
+    );
+  }
+
+  Widget _buildTileWidget(String letter, Color color, {double scale = 1.0}) {
+    return Container(
+      width: Sizes.height_6 * scale,
+      height: Sizes.height_6 * scale,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.4),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        letter,
+        style: TextStyle(
+          fontFamily: 'MochiyPop',
+          fontWeight: FontWeight.w700,
+          fontSize: FontSize.size_20 * scale,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  /// Called when a scrambled tile is dropped onto a slot.
+  void _onDropLetter(int tileIndex, int slotIndex) {
+    final droppedChar = _scrambledChars[tileIndex];
+    final expectedChar = _wordChars[slotIndex];
+
+    if (droppedChar == expectedChar) {
+      // ✅ Correct!
+      setState(() {
+        _slots[slotIndex] = droppedChar;
+        _scrambledUsed[tileIndex] = true;
+      });
+      Utils.playSound('assets/sounds/quiz/right_answer.mp3');
+
+      // Check if word is complete
+      if (!_slots.contains(null)) {
+        // 🎉 All correct — celebrate!
+        setState(() => _showCongrats = true);
+        Utils.playSound('assets/sounds/matching/intelligent.mp3');
+        Future.delayed(const Duration(seconds: 3), () {
+          _generateWord();
+        });
+      }
+    } else {
+      // ❌ Wrong — shake & buzz
+      Utils.playSound('assets/sounds/wrong.mp3');
+      setState(() => _shakeSlotIndex = slotIndex);
+      _shakeController.forward(from: 0);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  NUMBERS MODE — Original keyboard + blackboard
+  // ═══════════════════════════════════════════════════════════════════
+
   Widget? _editTextField() {
     return Container(
       height: Sizes.height_100,
@@ -146,119 +449,10 @@ class _WriteScreenState extends State<WriteScreen> {
   }
 
   _setTextOnBoard(String value) {
-    if (_isLettersMode) {
-      if (value.isNotEmpty && value != ' ') {
-        Utils.playSound(LettersData.soundPath(value.toLowerCase()));
-      }
-    } else {
-      if (value != Constant.strDas) {
-        Utils.playSound("assets/sounds/learn/n_" + value + ".mp3");
-      }
+    if (value != Constant.strDas) {
+      Utils.playSound("assets/sounds/learn/n_$value.mp3");
     }
     _editingController!.text = _editingController!.text + value;
-  }
-
-  Widget _letterKey(String letter) {
-    return InkWell(
-      onTap: () => _setTextOnBoard(letter),
-      child: Container(
-        margin: const EdgeInsets.all(2),
-        width: 42,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.orange.shade600,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2))],
-        ),
-        child: Center(
-          child: Text(
-            letter,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontFamily: 'MochiyPop',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _letterKeyboard() {
-    final rows = [
-      ['Q','W','E','R','T','Y','U','I','O','P'],
-      ['A','S','D','F','G','H','J','K','L'],
-      ['Z','X','C','V','B','N','M'],
-    ];
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return FittedBox(
-          fit: BoxFit.contain,
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...rows.map((row) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: row.map((l) => _letterKey(l)).toList(),
-                ),
-              )),
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    InkWell(
-                      onTap: () => _setTextOnBoard(' '),
-                      child: Container(
-                        margin: const EdgeInsets.all(2),
-                        width: 140,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade400,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2))],
-                        ),
-                        child: const Center(
-                          child: Text('SPACE',
-                            style: TextStyle(color: Colors.white, fontSize: 14, fontFamily: 'MochiyPop'),
-                          ),
-                        ),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        if (_editingController!.text.isNotEmpty) {
-                          _editingController!.text = _editingController!.text
-                              .substring(0, _editingController!.text.length - 1);
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.all(2),
-                        width: 80,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: Colors.red.shade400,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2, offset: Offset(0, 2))],
-                        ),
-                        child: const Center(child: Icon(Icons.backspace_rounded, color: Colors.white, size: 22)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   _widgetCenterView() {
@@ -278,15 +472,6 @@ class _WriteScreenState extends State<WriteScreen> {
               child: _editTextField(),
             ),
           ),
-          if (_isLettersMode)
-            Expanded(
-              flex: 3,
-              child: Container(
-                margin: EdgeInsets.only(top: Sizes.height_1, bottom: Sizes.height_2, right: Sizes.width_2),
-                child: _letterKeyboard(),
-              ),
-            )
-          else
           Container(
             margin:
                 EdgeInsets.only(top: Sizes.height_1, bottom: Sizes.height_2),

@@ -111,9 +111,28 @@ class _MatchingScreenState extends State<MatchingScreen> {
       return LettersData.iconPath(letter); // show letter badge in target box
     }
     // Numbers mode: show count image extracted from icon path
-    return 'assets/images/count/imgCount/count_'
-        + que[index].split('assets/icons/learn/numbers/b').last;
+    return 'assets/images/count/imgCount/count_${que[index].split('assets/icons/learn/numbers/b').last}';
   }
+
+  /// Extracts the letter key from an object image path.
+  String _letterFromObjectPath(String path) {
+    return path.split('assets/images/letters/').last.replaceAll('.webp', '');
+  }
+
+  /// Returns the hint text for a draggable item in letters mode:
+  /// The object name WITHOUT the first letter. e.g. Zebra → "ebra"
+  String _letterHintText(String letter) {
+    final name = LettersData.letterObjectNames[letter] ?? '';
+    if (name.length <= 1) return '';
+    return name.substring(1).toLowerCase();
+  }
+
+  /// Accent colors for the first letter in drag targets.
+  static const List<Color> _matchLetterColors = [
+    Color(0xFF1565C0), // blue
+    Color(0xFF2E7D32), // green
+    Color(0xFF7B1FA2), // purple
+  ];
 
   /// Sound played when dragging an item.
   void _playDragSound(String key) {
@@ -143,7 +162,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
               width: double.infinity,
             ),
             Column(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              mainAxisAlignment: _isLettersMode
+                  ? MainAxisAlignment.start
+                  : MainAxisAlignment.spaceAround,
               children: [
                 _widgetTopView(),
                 if(isLottieLoad)...{
@@ -174,6 +195,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(
         top: Sizes.height_1_5,
+        bottom: 0,
         left: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_2,
       ),
       child: InkWell(
@@ -182,7 +204,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
         },
         child: Image.asset(
           "assets/icons/learn/ic_home.webp",
-          scale: 6,
+          scale: _isLettersMode ? 7 : 6,
         ),
       ),
     );
@@ -194,11 +216,14 @@ class _MatchingScreenState extends State<MatchingScreen> {
           padding: EdgeInsets.zero,
           shrinkWrap: true,
           scrollDirection: Axis.vertical,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          physics: _isLettersMode
+              ? const NeverScrollableScrollPhysics()
+              : null,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 35,
-              mainAxisSpacing: 30,
-              childAspectRatio: 0.92),
+              crossAxisSpacing: _isLettersMode ? 8 : 35,
+              mainAxisSpacing: _isLettersMode ? 2 : 30,
+              childAspectRatio: _isLettersMode ? 0.85 : 0.92),
           itemCount: que.length,
           itemBuilder: (BuildContext context, int index) {
             return _dragTargets(index, context);
@@ -217,7 +242,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 ? Image.asset(
                     getHappyBoxesFromIndex(index)!,
                     fit: BoxFit.cover,
-                    height: Sizes.height_17,
+                    height: _isLettersMode ? Sizes.height_13 : Sizes.height_17,
                   )
                 : Stack(
               alignment: Alignment.center,
@@ -225,24 +250,34 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 Image.asset(
                   getEmptyBoxesFromIndex(index)!,
                   fit: BoxFit.cover,
-                  height: Sizes.height_17,
+                  height: _isLettersMode ? Sizes.height_13 : Sizes.height_17,
                 ),
                 Container(
                   margin: EdgeInsets.only(
                     top: Sizes.height_2_5,
                     left: Sizes.width_1_5,
                   ),
-                  child: Image.asset(
-                    _targetDisplayImage(index),
-                    fit: BoxFit.contain,
-                    height: Sizes.height_8,
-                  ),
+                  child: _isLettersMode
+                      ? Text(
+                          _letterFromObjectPath(que[index]).toUpperCase(),
+                          style: TextStyle(
+                            fontFamily: 'MochiyPop',
+                            fontWeight: FontWeight.w700,
+                            fontSize: FontSize.size_40,
+                            color: _matchLetterColors[index % _matchLetterColors.length],
+                          ),
+                        )
+                      : Image.asset(
+                          _targetDisplayImage(index),
+                          fit: BoxFit.contain,
+                          height: Sizes.height_8,
+                        ),
                 ),
               ],
             );
           },
-          onWillAccept: (data) {
-            if (totalNumbers[data] == que[index]) {
+          onWillAcceptWithDetails: (details) {
+            if (totalNumbers[details.data] == que[index]) {
               // Utils.playSound("assets/sounds/matching/intelligent.mp3");
               Debug.printLog("accept");
               return true;
@@ -252,14 +287,14 @@ class _MatchingScreenState extends State<MatchingScreen> {
               return false;
             }
           },
-          onAccept: (data) async {
+          onAcceptWithDetails: (details) async {
             setState(() {
               accept = true;
             });
             if (count.length < 3) {
               setState(() {
-                count.add(data.toString());
-                Debug.printLog("que:==>>  " + que[index]);
+                count.add(details.data.toString());
+                Debug.printLog("que:==>>  ${que[index]}");
                 Utils.playSound("assets/sounds/matching/intelligent.mp3");
               });
 
@@ -285,10 +320,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
           onLeave: (data) {
             Future.delayed(const Duration(milliseconds: 100), () {
               if (!isDrag!) {
-                Debug.printLog("onLeave==>>>> " +
-                    data.toString() +
-                    "  " +
-                    isDrag.toString());
+                Debug.printLog("onLeave==>>>> $data  $isDrag");
                 Utils.playSound("assets/sounds/quiz/wrong_answer.mp3");
               }
             });
@@ -302,6 +334,18 @@ class _MatchingScreenState extends State<MatchingScreen> {
 
 
   _draggablesGridView() {
+    if (_isLettersMode) {
+      // Use a simple Row with fixed height — no wasted vertical space
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: List.generate(option.length, (index) {
+            return _draggables(index, context);
+          }),
+        ),
+      );
+    }
     return GridView.builder(
         padding: const EdgeInsets.all(5),
         shrinkWrap: true,
@@ -320,11 +364,13 @@ class _MatchingScreenState extends State<MatchingScreen> {
   String? current;
   _draggables(int index, BuildContext context) {
     return Container(
-      alignment: (index == 0)
-          ? Alignment.centerRight
-          : (index == 2)
-              ? Alignment.centerLeft
-              : Alignment.center,
+      alignment: _isLettersMode
+          ? Alignment.center
+          : (index == 0)
+              ? Alignment.centerRight
+              : (index == 2)
+                  ? Alignment.centerLeft
+                  : Alignment.center,
       child: Draggable(
         maxSimultaneousDrags: accept! || isDrag! ? 0 : 1,
         onDragStarted: () {
@@ -332,7 +378,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             isDrag = true;
             current = totalNumbers[option[index]];
             _playDragSound(option[index]);
-            Debug.printLog("current: " +current!);
+            Debug.printLog("current: ${current!}");
           });
         },
         onDragEnd: (_) {
@@ -346,28 +392,51 @@ class _MatchingScreenState extends State<MatchingScreen> {
           height: MediaQuery.of(context).size.height * 0.05,
           width: MediaQuery.of(context).size.width * 0.33,
         ) :
-        Image.asset(
-          totalNumbers[option[index]].toString(),
-          alignment: Alignment.center,
-          height: MediaQuery.of(context).size.height * 0.2,
-          width: MediaQuery.of(context).size.width * 0.2,
-        )
-        ,
-
-        child: count.contains(option[index])
-            ? Container(
-          color: CColor.transparent,
-          height: MediaQuery.of(context).size.height * 0.05,
-          width: MediaQuery.of(context).size.width * 0.33,
-        )
+        _isLettersMode
+            ? Material(
+                color: Colors.transparent,
+                child: _buildLetterDraggableFeedback(index, context),
+              )
             : Image.asset(
                 totalNumbers[option[index]].toString(),
-              ),
-        childWhenDragging: Container(
-          color: CColor.transparent,
-          height: MediaQuery.of(context).size.height * 0.05,
-          width: MediaQuery.of(context).size.width * 0.33,
-        ),
+                alignment: Alignment.center,
+                height: MediaQuery.of(context).size.height * 0.2,
+                width: MediaQuery.of(context).size.width * 0.2,
+              )
+        ,
+        childWhenDragging: count.contains(option[index])
+            ? Container(
+                color: CColor.transparent,
+                height: MediaQuery.of(context).size.height * 0.05,
+                width: MediaQuery.of(context).size.width * 0.33,
+              )
+            : _isLettersMode
+                ? Opacity(
+                    opacity: 0.3,
+                    child: _buildLetterDraggableChild(index),
+                  )
+                : Container(
+                    color: CColor.transparent,
+                    height: MediaQuery.of(context).size.height * 0.05,
+                    width: MediaQuery.of(context).size.width * 0.33,
+                  ),
+
+        child: count.contains(option[index])
+            ? _isLettersMode
+                ? Opacity(
+                    opacity: 0,
+                    child: _buildLetterDraggableChild(index),
+                  )
+                : Container(
+                    color: CColor.transparent,
+                    height: MediaQuery.of(context).size.height * 0.05,
+                    width: MediaQuery.of(context).size.width * 0.33,
+                  )
+            : _isLettersMode
+                ? _buildLetterDraggableChild(index)
+                : Image.asset(
+                    totalNumbers[option[index]].toString(),
+                  ),
       ),
     );
   }
@@ -398,6 +467,65 @@ class _MatchingScreenState extends State<MatchingScreen> {
     return imgName;
   }
 
+  /// Builds the draggable child widget for letters mode:
+  /// Shows object image + remaining letters side by side (e.g. 🌞 "un")
+  Widget _buildLetterDraggableChild(int index) {
+    final letter = option[index];
+    final objectImg = totalNumbers[letter]!;
+    final hint = _letterHintText(letter);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Image.asset(
+          objectImg,
+          height: MediaQuery.of(context).size.height * 0.1,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          hint,
+          style: TextStyle(
+            fontFamily: 'MochiyPop',
+            fontWeight: FontWeight.w700,
+            fontSize: FontSize.size_20,
+            color: const Color(0xFF37474F),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Builds the feedback widget shown while dragging in letters mode.
+  /// Shows image + hint text (bigger version).
+  Widget _buildLetterDraggableFeedback(int index, BuildContext context) {
+    final letter = option[index];
+    final objectImg = totalNumbers[letter]!;
+    final hint = _letterHintText(letter);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          objectImg,
+          height: MediaQuery.of(context).size.height * 0.1,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          hint,
+          style: TextStyle(
+            fontFamily: 'MochiyPop',
+            fontWeight: FontWeight.w700,
+            fontSize: FontSize.size_20,
+            color: const Color(0xFF37474F),
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ],
+    );
+  }
+
   generateNumbers() {
     Utils.playSound("assets/sounds/matching/matchingpair.mp3");
     option.clear();
@@ -405,10 +533,10 @@ class _MatchingScreenState extends State<MatchingScreen> {
     count.clear();
 
     option = totalNumbers.keys.toList().sample(3);
-    Debug.printLog("New Matching Numbers==>> " +option.toString());
+    Debug.printLog("New Matching Numbers==>> $option");
     for (var element in option) {
       que.add(totalNumbers[element]!);
-      Debug.printLog("Total Numbers Element==>>> "+element +"  "+totalNumbers[element].toString());
+      Debug.printLog("Total Numbers Element==>>> $element  ${totalNumbers[element]}");
     }
     que.shuffle();
 

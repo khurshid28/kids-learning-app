@@ -35,9 +35,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if(state == AppLifecycleState.paused){
-      if(Utils.audioPlayer != null) Utils.audioPlayer.stop();
+      Utils.audioPlayer.stop();
     }else if(state == AppLifecycleState.resumed){
-      if(Utils.audioPlayer != null) Utils.audioPlayer.resume();
+      Utils.audioPlayer.resume();
     }
   }
 
@@ -323,8 +323,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
           InkWell(
             onTap: () {
               // pageController.previousPage(duration: const Duration(milliseconds: 1), curve: Curves.ease);
-              Debug.printLog("pageController previousPage ==>>> " +
-                  pageController.page.toString());
+              Debug.printLog("pageController previousPage ==>>> ${pageController.page}");
               pageController.jumpToPage(pageController.page!.toInt() - 3);
             },
             child: Container(
@@ -338,8 +337,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
           InkWell(
             onTap: () {
               // pageController.nextPage(duration: const Duration(milliseconds: 1), curve: Curves.ease);
-              Debug.printLog("pageController nextPage==>>> " +
-                  pageController.page.toString());
+              Debug.printLog("pageController nextPage==>>> ${pageController.page}");
               pageController.jumpToPage(pageController.page!.toInt() + 3);
             },
             child: Container(
@@ -427,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
       onTap: () {
         if (gamesCategoryList[index].moveScreen.toString().isNotEmpty) {
           Navigator.pushNamed(
-              context, "/" + gamesCategoryList[index].moveScreen.toString());
+              context, "/${gamesCategoryList[index].moveScreen}");
         }
       },
       child: Container(
@@ -484,8 +482,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
 
   _getCategoryData() async {
     gamesCategoryList = await DataBaseHelper().getAllGamesCategory();
+    // Hide Coloring section in letters mode — not applicable to letters
+    if (_isLettersMode) {
+      gamesCategoryList.removeWhere(
+          (item) => item.moveScreen.toString() == 'coloringScreen');
+    }
     Debug.printLog(
-        "_getCategoryData==>> " + gamesCategoryList.length.toString());
+        "_getCategoryData==>> ${gamesCategoryList.length}");
     setState(() {});
   }
 

@@ -203,7 +203,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
               margin: EdgeInsets.only(right: Sizes.width_15),
               alignment: Alignment.center,
               child: AutoSizeText(
-                _isLettersMode ? "Which Letter?" : Languages.of(context)!.txtCountObj,
+                _isLettersMode ? "Find the Letter! 🔎" : Languages.of(context)!.txtCountObj,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: "MochiyPop",
@@ -224,7 +224,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
       child: Row(
         children: [
           Expanded(
-            flex: 8,
+            flex: _isLettersMode ? 7 : 8,
             child: Container(
               margin: EdgeInsets.only(
                 right: Sizes.width_2,
@@ -247,17 +247,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
             ),
           ),
           Expanded(
-            flex: 2,
+            flex: _isLettersMode ? 3 : 2,
             child: Container(
               margin: EdgeInsets.only(bottom: (Platform.isAndroid) ? Sizes.height_1 : 0,
                   right: (Platform.isAndroid) ? Sizes.width_2 : 0),
               child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount:1,
                       mainAxisSpacing: 5,
-                      childAspectRatio: 2.5),
+                      childAspectRatio: _isLettersMode ? 2.0 : 2.5),
                   itemCount: answerNumbersList.length,
                   itemBuilder: (BuildContext context, int index) {
                     return _itemAnswerNumbers(index, context);
@@ -269,6 +269,46 @@ class _PracticeScreenState extends State<PracticeScreen> {
     );
   }
 
+
+  /// Builds a styled word widget for letters mode:
+  /// First letter is BIG + colored, remaining letters are smaller + black.
+  Widget _styledLetterWord(String word, Color accentColor) {
+    if (word.isEmpty) return const SizedBox();
+    final firstChar = word[0].toUpperCase();
+    final rest = word.substring(1).toLowerCase();
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          firstChar,
+          style: TextStyle(
+            fontFamily: "MochiyPop",
+            fontWeight: FontWeight.w700,
+            color: accentColor,
+            fontSize: FontSize.size_22,
+          ),
+        ),
+        Text(
+          rest,
+          style: TextStyle(
+            fontFamily: "MochiyPop",
+            fontWeight: FontWeight.w400,
+            color: CColor.black,
+            fontSize: FontSize.size_14,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Accent colors for the first letter in answer options.
+  static const List<Color> _letterAccentColors = [
+    Color(0xFFE53935), // red
+    Color(0xFF1E88E5), // blue
+    Color(0xFF43A047), // green
+    Color(0xFFFB8C00), // orange
+  ];
 
   _itemAnswerNumbers(int index, BuildContext context) {
     return InkWell(
@@ -284,21 +324,47 @@ class _PracticeScreenState extends State<PracticeScreen> {
       },
       child: Container(
         alignment: Alignment.center,
+        padding: _isLettersMode ? const EdgeInsets.symmetric(horizontal: 6) : null,
         decoration: BoxDecoration(
             border: Border.all(color: CColor.black, width: 5),
             borderRadius: BorderRadius.circular(15),
-            color: CColor.boxColorArray[index]),
-        child: AutoSizeText(
-          _answerLabel(answerNumbersList[index].count!),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: "MochiyPop",
-            fontWeight: FontWeight.w400,
-            color: CColor.black,
-            fontSize: FontSize.size_20,
-          ),
-        ),
+            color: CColor.boxColorArray[index % CColor.boxColorArray.length]),
+        child: _isLettersMode
+            ? _buildLetterAnswerContent(index)
+            : AutoSizeText(
+                _answerLabel(answerNumbersList[index].count!),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: "MochiyPop",
+                  fontWeight: FontWeight.w400,
+                  color: CColor.black,
+                  fontSize: FontSize.size_20,
+                ),
+              ),
       ),
+    );
+  }
+
+  /// Builds the content of an answer button in letters mode:
+  /// Shows a small object image + styled word (e.g.  🍎 Apple)
+  Widget _buildLetterAnswerContent(int index) {
+    final count = answerNumbersList[index].count!;
+    final letter = LettersData.letters[count - 1];
+    final objectName = LettersData.letterObjectNames[letter] ?? letter.toUpperCase();
+    final accentColor = _letterAccentColors[index % _letterAccentColors.length];
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Image.asset(
+          LettersData.letterObjects[letter]!,
+          width: Sizes.height_4,
+          height: Sizes.height_4,
+          fit: BoxFit.contain,
+        ),
+        const SizedBox(width: 4),
+        Flexible(child: _styledLetterWord(objectName, accentColor)),
+      ],
     );
   }
 

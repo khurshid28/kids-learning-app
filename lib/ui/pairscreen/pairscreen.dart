@@ -153,7 +153,7 @@ class _PairScreenState extends State<PairScreen> {
     return Container(
       alignment: Alignment.centerLeft,
       margin: EdgeInsets.only(
-          top: Sizes.height_1_5,
+          top: _isLettersMode ? Sizes.height_1 : Sizes.height_1_5,
           left: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_2,
           right: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_2),
       child: InkWell(
@@ -179,12 +179,15 @@ class _PairScreenState extends State<PairScreen> {
     return GridView.builder(
       scrollDirection: Axis.vertical,
       shrinkWrap: true,
-      padding: EdgeInsets.symmetric(horizontal: Sizes.width_5, vertical: Sizes.height_1),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+      padding: EdgeInsets.symmetric(
+        horizontal: _isLettersMode ? Sizes.width_2 : Sizes.width_5,
+        vertical: _isLettersMode ? Sizes.height_0_5 : Sizes.height_1,
+      ),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 5,
         childAspectRatio: 1,
-        mainAxisSpacing: 6,
-        crossAxisSpacing: 6,
+        mainAxisSpacing: _isLettersMode ? 3 : 6,
+        crossAxisSpacing: _isLettersMode ? 3 : 6,
       ),
       itemBuilder: (context, index) {
         return _itemView(index);
@@ -216,7 +219,7 @@ class _PairScreenState extends State<PairScreen> {
             setState(() {
               isLottieLoad= true;
             });
-            Debug.printLog("Regenerate pairs===>>> "+isSelectedItemList.length.toString());
+            Debug.printLog("Regenerate pairs===>>> ${isSelectedItemList.length}");
             Future.delayed(const Duration(seconds: 3),(){
               isLottieLoad= false;
               generatePairs();
@@ -235,8 +238,9 @@ class _PairScreenState extends State<PairScreen> {
         opacity: (pairsArray[index].isSelect == false)?1:0,
         child: Image.asset(
           _iconPath(pairsArray[index].count!),
-          width: Sizes.height_7,
-          height: Sizes.height_7,
+          width: _isLettersMode ? Sizes.height_5 : Sizes.height_7,
+          height: _isLettersMode ? Sizes.height_5 : Sizes.height_7,
+          fit: BoxFit.contain,
         ),
       ),
     );
@@ -262,7 +266,7 @@ class _PairScreenState extends State<PairScreen> {
     for(int i=0;i<pairsArrayInt.length;i++){
       pairsArray.add(PairData(pairsArrayInt[i], false));
     }
-    Debug.printLog("generatePairs==>>> " + pairsArray.toString());
+    Debug.printLog("generatePairs==>>> $pairsArray");
     setState(() {});
   }
 }
