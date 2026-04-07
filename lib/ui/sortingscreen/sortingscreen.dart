@@ -139,7 +139,7 @@ class _SortingScreenState extends State<SortingScreen> {
   _widgetTopView() {
     return Container(
       margin: EdgeInsets.only(
-          top: Sizes.height_1_5,
+          top: _isLettersMode ? Sizes.height_0_5 : Sizes.height_1_5,
           left: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_3,
           right: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_3),
       child: Row(
@@ -178,15 +178,15 @@ class _SortingScreenState extends State<SortingScreen> {
 
   _draggableGridView() {
     return Container(
-      margin: EdgeInsets.only(top: Sizes.height_2),
+      margin: EdgeInsets.only(top: _isLettersMode ? 0 : Sizes.height_2),
       alignment: Alignment.center,
       child: GridView.builder(
-          padding: const EdgeInsets.all(5),
+          padding: EdgeInsets.all(_isLettersMode ? 2 : 5),
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: option.length,
-            childAspectRatio: 3,
+            childAspectRatio: _isLettersMode ? 4.0 : 3,
           ),
           itemCount: option.length,
           itemBuilder: (BuildContext context, int index) {
@@ -211,9 +211,9 @@ class _SortingScreenState extends State<SortingScreen> {
             if (_isLettersMode) {
               Utils.playSound(LettersData.soundPath(option[index]));
             } else {
-              Utils.playSound("assets/sounds/learn/n_"+current.toString().split("assets/icons/learn/numbers/b")[1].replaceAll(".webp", "")+".mp3");
+              Utils.playSound("assets/sounds/learn/n_${current.toString().split("assets/icons/learn/numbers/b")[1].replaceAll(".webp", "")}.mp3");
             }
-            Debug.printLog("current: " +current!);
+            Debug.printLog("current: ${current!}");
           });
         },
         onDragEnd: (_) {
@@ -234,6 +234,11 @@ class _SortingScreenState extends State<SortingScreen> {
           width: MediaQuery.of(context).size.width * 0.2,
         )
         ,
+        childWhenDragging: Container(
+          color: CColor.transparent,
+          height: MediaQuery.of(context).size.height * 0.05,
+          width: MediaQuery.of(context).size.width * 0.33,
+        ),
 
         child: count.contains(option[index])
             ? Container(
@@ -244,11 +249,6 @@ class _SortingScreenState extends State<SortingScreen> {
             : Image.asset(
           totalNumbers[option[index]].toString(),
         ),
-        childWhenDragging: Container(
-          color: CColor.transparent,
-          height: MediaQuery.of(context).size.height * 0.05,
-          width: MediaQuery.of(context).size.width * 0.33,
-        ),
       ),
     );
   }
@@ -257,15 +257,16 @@ class _SortingScreenState extends State<SortingScreen> {
   _dragTargetGridView() {
     return Expanded(
       child: GridView.builder(
-          padding: EdgeInsets.zero,
+          padding: _isLettersMode ? EdgeInsets.zero : null,
           shrinkWrap: true,
           scrollDirection: Axis.vertical,
           // physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          physics: _isLettersMode ? const NeverScrollableScrollPhysics() : null,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 35,
-              mainAxisSpacing: 30,
-              childAspectRatio: 0.92),
+              crossAxisSpacing: _isLettersMode ? 5 : 35,
+              mainAxisSpacing: _isLettersMode ? 0 : 30,
+              childAspectRatio: _isLettersMode ? 1.3 : 0.92),
           itemCount: que.length,
           itemBuilder: (BuildContext context, int index) {
             return _dragTargets(index, context);
@@ -275,42 +276,40 @@ class _SortingScreenState extends State<SortingScreen> {
 
 
   _dragTargets(int index, BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: Sizes.height_5),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          DragTarget(
-            builder: (BuildContext context, List<Object?> candidateData,
-                List<dynamic> rejectedData) {
-              return  Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Image.asset(
-                    "assets/images/sorting/sort_"+index.toString()+".webp",
-                    fit: BoxFit.cover,
-                    height: Sizes.height_22,
-                  ),
-                  Container(
-                    margin: EdgeInsets.only(
-                      top: Sizes.height_2,
-                      left: Sizes.width_1_5,
-                    ),
-                    child:(que[index].isAnswered)? Image.asset(
-                      que[index].imageName!,
-                      fit: BoxFit.cover,
-                      height: Sizes.height_10,
-                    ):Image.asset(
-                      "assets/icons/sorting/box.png",
-                      fit: BoxFit.cover,
-                      height: Sizes.height_10,
-                    ),
-                  ),
-                ],
-              );
-            },
-            onWillAccept: (data) {
-              if (totalNumbers[data] == que[index].imageName) {
+    return DragTarget(
+      builder: (BuildContext context, List<Object?> candidateData,
+          List<dynamic> rejectedData) {
+        return Container(
+          margin: EdgeInsets.only(bottom: _isLettersMode ? 0 : Sizes.height_5),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              Image.asset(
+                "assets/images/sorting/sort_$index.webp",
+                fit: BoxFit.contain,
+                height: _isLettersMode ? Sizes.height_15 : Sizes.height_22,
+              ),
+              Container(
+                margin: EdgeInsets.only(
+                  top: _isLettersMode ? Sizes.height_1 : Sizes.height_2,
+                  left: Sizes.width_1_5,
+                ),
+                child:(que[index].isAnswered)? Image.asset(
+                  que[index].imageName!,
+                  fit: BoxFit.cover,
+                  height: _isLettersMode ? Sizes.height_6 : Sizes.height_10,
+                ):Image.asset(
+                  "assets/icons/sorting/box.png",
+                  fit: BoxFit.cover,
+                  height: _isLettersMode ? Sizes.height_6 : Sizes.height_10,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+            onWillAcceptWithDetails: (details) {
+              if (totalNumbers[details.data] == que[index].imageName) {
                 Debug.printLog("accept");
                 return true;
               } else {
@@ -318,16 +317,16 @@ class _SortingScreenState extends State<SortingScreen> {
                 return false;
               }
             },
-            onAccept: (data) async {
+            onAcceptWithDetails: (details) async {
               setState(() {
                 accept = true;
               });
               if (count.length < 3) {
                 setState(() {
-                  count.add(data.toString());
+                  count.add(details.data.toString());
                   var indexOfRightAnswer = que.indexWhere((element) => element.imageName == que[index].imageName.toString());
                   que[indexOfRightAnswer].isAnswered = true;
-                  Debug.printLog("que:==>>  " + que[index].imageName.toString());
+                  Debug.printLog("que:==>>  ${que[index].imageName}");
                   Utils.playSound("assets/sounds/matching/intelligent.mp3");
                 });
 
@@ -351,19 +350,13 @@ class _SortingScreenState extends State<SortingScreen> {
             onLeave: (data) {
               Future.delayed(const Duration(milliseconds: 100), () {
                 if (!isDrag!) {
-                  Debug.printLog("onLeave==>>>> " +
-                      data.toString() +
-                      "  " +
-                      isDrag.toString());
+                  Debug.printLog("onLeave==>>>> $data  $isDrag");
                   Utils.playSound("assets/sounds/quiz/wrong_answer.mp3");
                 }
               });
 
               // Utils.playSound("assets/sounds/quiz/wrong_answer.mp3");
             },
-          ),
-        ],
-      ),
     );
   }
 
@@ -374,15 +367,15 @@ class _SortingScreenState extends State<SortingScreen> {
     count.clear();
 
     option = totalNumbers.keys.toList().sample(3);
-    Debug.printLog("New Matching Numbers==>> " +option.toString());
+    Debug.printLog("New Matching Numbers==>> $option");
     for (var element in option) {
       final int sortKey = _isLettersMode
           ? LettersData.letters.indexOf(element) + 1
           : int.parse(element);
       que.add(DraggableNumbersData(sortKey, totalNumbers[element]!, false));
-      Debug.printLog("Total Numbers Element==>>> "+element.toString());
+      Debug.printLog("Total Numbers Element==>>> $element");
     }
-    Comparator<DraggableNumbersData> sortById = (a, b) => a.countSort!.compareTo(b.countSort!);
+    int sortById(DraggableNumbersData a, DraggableNumbersData b) => a.countSort!.compareTo(b.countSort!);
     que.sort(sortById);
     setState(() {});
   }

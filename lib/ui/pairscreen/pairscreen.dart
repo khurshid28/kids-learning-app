@@ -156,14 +156,31 @@ class _PairScreenState extends State<PairScreen> {
           top: _isLettersMode ? Sizes.height_1 : Sizes.height_1_5,
           left: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_2,
           right: (Platform.isIOS) ? Sizes.width_5 : Sizes.width_2),
-      child: InkWell(
-        onTap: () {
-          Navigator.pop(context);
-        },
-        child: Image.asset(
-          "assets/icons/learn/ic_home.webp",
-          scale: 6,
-        ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () {
+              Navigator.pop(context);
+            },
+            child: Image.asset(
+              "assets/icons/learn/ic_home.webp",
+              scale: 6,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              _isLettersMode ? "Find the Pair! 🧩" : "Find the Pair!",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: "MochiyPop",
+                fontWeight: FontWeight.w600,
+                color: CColor.black,
+                fontSize: FontSize.size_18,
+              ),
+            ),
+          ),
+          const SizedBox(width: 40),
+        ],
       ),
     );
   }
@@ -184,10 +201,10 @@ class _PairScreenState extends State<PairScreen> {
         vertical: _isLettersMode ? Sizes.height_0_5 : Sizes.height_1,
       ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 5,
-        childAspectRatio: 1,
-        mainAxisSpacing: _isLettersMode ? 3 : 6,
-        crossAxisSpacing: _isLettersMode ? 3 : 6,
+        crossAxisCount: _isLettersMode ? 7 : 5,
+        childAspectRatio: _isLettersMode ? 1.5 : 1,
+        mainAxisSpacing: _isLettersMode ? 2 : 6,
+        crossAxisSpacing: _isLettersMode ? 2 : 6,
       ),
       itemBuilder: (context, index) {
         return _itemView(index);

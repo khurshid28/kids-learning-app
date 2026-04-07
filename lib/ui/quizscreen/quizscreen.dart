@@ -141,7 +141,7 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
                       ),
                     )
                   : AutoSizeText(
-                      Languages.of(context)!.txtTouch + " " + _quizAnswerLabel,
+                      "${Languages.of(context)!.txtTouch} $_quizAnswerLabel",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontFamily: "MochiyPop",
@@ -315,12 +315,23 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
     );
   }
 
+  /// Accent colors for letter choices.
+  static const List<Color> _quizLetterColors = [
+    Color(0xFFE53935), // red
+    Color(0xFF1E88E5), // blue
+    Color(0xFF43A047), // green
+  ];
+
   Widget _letterChoicesView() {
     final animations = [offsetAnimation1!, offsetAnimation2!, offsetAnimation3!];
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: List.generate(3, (i) {
         final letter = LettersData.letters[rands[i] - 1];
+        final objectName = LettersData.letterObjectNames[letter] ?? '';
+        final rest = objectName.length > 1 ? objectName.substring(1).toLowerCase() : '';
+        final accentColor = _quizLetterColors[i % _quizLetterColors.length];
         return Expanded(
           child: AnimatedBuilder(
             animation: animations[i],
@@ -330,12 +341,14 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
                 onTap: () => tapOnAnswer(i),
                 child: Container(
                   margin: EdgeInsets.symmetric(
-                      horizontal: Sizes.width_3, vertical: Sizes.height_1_5),
+                      horizontal: Sizes.width_2, vertical: Sizes.height_1),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: Sizes.width_1, vertical: Sizes.height_0_5),
                   transform: Matrix4.translationValues(offset, 0, 0),
                   decoration: BoxDecoration(
                     color: CColor.white,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: CColor.orange, width: 5),
+                    border: Border.all(color: accentColor, width: 5),
                     boxShadow: const [
                       BoxShadow(
                           color: Colors.black26,
@@ -344,24 +357,30 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
                     ],
                   ),
                   child: FittedBox(
-                    fit: BoxFit.contain,
-                    child: Column(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Image.asset(
-                          LettersData.iconPath(letter),
-                          height: Sizes.height_17,
-                        ),
-                        SizedBox(height: Sizes.height_1),
                         Text(
                           letter.toUpperCase(),
                           style: TextStyle(
                             fontFamily: 'MochiyPop',
+                            fontWeight: FontWeight.w700,
                             fontSize: FontSize.size_25,
-                            color: CColor.black,
+                            color: accentColor,
                           ),
                         ),
+                        if (rest.isNotEmpty)
+                          Text(
+                            rest,
+                            style: TextStyle(
+                              fontFamily: 'MochiyPop',
+                              fontWeight: FontWeight.w400,
+                              fontSize: FontSize.size_14,
+                              color: CColor.black,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -375,8 +394,7 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
   }
 
   tapOnAnswer(int pos){
-    Debug.printLog("pos on click ===>> "+(rands[pos] == quizAnswer).toString()
-        +"  "+rands[pos].toString()+"  "+quizAnswer.toString());
+    Debug.printLog("pos on click ===>> ${rands[pos] == quizAnswer}  ${rands[pos]}  $quizAnswer");
     setStrTap(pos.toString());
     if(rands[pos] == quizAnswer){
       Utils.playSound("assets/sounds/quiz/right_answer.mp3");
@@ -411,7 +429,7 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
     if (_isLettersMode) {
       Utils.textToSpeech(LettersData.letters[quizAnswer - 1].toUpperCase(), flutterTts);
     }
-    Debug.printLog("New Quiz==>> " + quizAnswer.toString());
+    Debug.printLog("New Quiz==>> $quizAnswer");
   }
 
   setStrTap(String value){
@@ -424,7 +442,7 @@ class _QuizScreenState extends State<QuizScreen>  with TickerProviderStateMixin{
 
 extension RandomInt on int {
   static int generate({int min = 0, @required int? max}) {
-    final _random = Random();
-    return min + _random.nextInt(max! - min);
+    final random = Random();
+    return min + random.nextInt(max! - min);
   }
 }

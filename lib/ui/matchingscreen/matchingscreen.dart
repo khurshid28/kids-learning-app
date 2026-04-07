@@ -372,7 +372,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                   ? Alignment.centerLeft
                   : Alignment.center,
       child: Draggable(
-        maxSimultaneousDrags: accept! || isDrag! ? 0 : 1,
+        maxSimultaneousDrags: accept! || isDrag! || count.contains(option[index]) ? 0 : 1,
         onDragStarted: () {
           setState(() {
             isDrag = true;

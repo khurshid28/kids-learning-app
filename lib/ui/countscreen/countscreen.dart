@@ -243,6 +243,46 @@ class _CountScreenState extends State<CountScreen> {
   }
 
   _itemCountsCategory(int itemIndex) {
+    if (_isLettersMode) {
+      final letter = LettersData.letters[itemIndex];
+      final objectName = LettersData.letterObjectNames[letter] ?? '';
+      final rest = objectName.length > 1 ? objectName.substring(1).toLowerCase() : '';
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            margin: EdgeInsets.only(left: Sizes.width_6),
+            child: Image.asset(
+              listCountNumbersData[itemIndex].imgCountExample.toString(),
+              height: Sizes.height_20,
+              fit: BoxFit.contain,
+            ),
+          ),
+          SizedBox(width: Sizes.width_4),
+          Text(
+            letter.toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'MochiyPop',
+              fontWeight: FontWeight.w700,
+              fontSize: FontSize.size_40,
+              color: const Color(0xFF1565C0),
+            ),
+          ),
+          Flexible(
+            child: Text(
+              rest,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'MochiyPop',
+                fontWeight: FontWeight.w400,
+                fontSize: FontSize.size_20,
+                color: CColor.black,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
     return Row(
       children: [
         Container(
@@ -298,7 +338,7 @@ class _CountScreenState extends State<CountScreen> {
       listCountNumbersData = await DataBaseHelper().getAllCountNumberData();
     }
     Debug.printLog(
-        "_getCountNumbersData==>> " + listCountNumbersData.length.toString());
+        "_getCountNumbersData==>> ${listCountNumbersData.length}");
     setState(() {});
   }
 

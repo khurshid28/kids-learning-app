@@ -203,7 +203,7 @@ class _PracticeScreenState extends State<PracticeScreen> {
               margin: EdgeInsets.only(right: Sizes.width_15),
               alignment: Alignment.center,
               child: AutoSizeText(
-                _isLettersMode ? "Find the Letter! 🔎" : Languages.of(context)!.txtCountObj,
+                _isLettersMode ? "Which letter is this? 🤔" : Languages.of(context)!.txtCountObj,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: "MochiyPop",
@@ -220,11 +220,63 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   _widgetCountObjet() {
+    if (_isLettersMode) {
+      return Expanded(
+        child: Row(
+          children: [
+            Expanded(
+              flex: 5,
+              child: Container(
+                margin: EdgeInsets.only(
+                    right: Sizes.width_2,
+                    left: Sizes.width_4,
+                    bottom: Sizes.height_2_5,
+                    top: Sizes.height_1),
+                decoration: BoxDecoration(
+                    border: Border.all(color: CColor.mainBorder, width: 10),
+                    borderRadius: BorderRadius.circular(30),
+                    color: CColor.mainBg),
+                child: Container(
+                  margin: EdgeInsets.symmetric(
+                      horizontal: Sizes.width_1, vertical: Sizes.height_1),
+                  decoration: BoxDecoration(
+                      border: Border.all(color: CColor.innerBorder, width: 10),
+                      borderRadius: BorderRadius.circular(25),
+                      color: CColor.innerBg),
+                  child: _questionImage(),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: 5,
+              child: Container(
+                margin: EdgeInsets.only(
+                    bottom: Sizes.height_2_5,
+                    top: Sizes.height_1,
+                    right: Sizes.width_4),
+                child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 2.2),
+                    itemCount: answerNumbersList.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return _itemAnswerNumbers(index, context);
+                    }),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Expanded(
       child: Row(
         children: [
           Expanded(
-            flex: _isLettersMode ? 7 : 8,
+            flex: 8,
             child: Container(
               margin: EdgeInsets.only(
                 right: Sizes.width_2,
@@ -247,17 +299,17 @@ class _PracticeScreenState extends State<PracticeScreen> {
             ),
           ),
           Expanded(
-            flex: _isLettersMode ? 3 : 2,
+            flex: 2,
             child: Container(
               margin: EdgeInsets.only(bottom: (Platform.isAndroid) ? Sizes.height_1 : 0,
                   right: (Platform.isAndroid) ? Sizes.width_2 : 0),
               child: GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount:1,
                       mainAxisSpacing: 5,
-                      childAspectRatio: _isLettersMode ? 2.0 : 2.5),
+                      childAspectRatio: 2.5),
                   itemCount: answerNumbersList.length,
                   itemBuilder: (BuildContext context, int index) {
                     return _itemAnswerNumbers(index, context);
@@ -346,24 +398,39 @@ class _PracticeScreenState extends State<PracticeScreen> {
   }
 
   /// Builds the content of an answer button in letters mode:
-  /// Shows a small object image + styled word (e.g.  🍎 Apple)
+  /// Big colored letter + remaining letters small (e.g. C + ar)
   Widget _buildLetterAnswerContent(int index) {
     final count = answerNumbersList[index].count!;
     final letter = LettersData.letters[count - 1];
-    final objectName = LettersData.letterObjectNames[letter] ?? letter.toUpperCase();
+    final objectName = LettersData.letterObjectNames[letter] ?? '';
     final accentColor = _letterAccentColors[index % _letterAccentColors.length];
+    final rest = objectName.length > 1 ? objectName.substring(1).toLowerCase() : '';
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Image.asset(
-          LettersData.letterObjects[letter]!,
-          width: Sizes.height_4,
-          height: Sizes.height_4,
-          fit: BoxFit.contain,
+        Text(
+          letter.toUpperCase(),
+          style: TextStyle(
+            fontFamily: "MochiyPop",
+            fontWeight: FontWeight.w700,
+            color: accentColor,
+            fontSize: FontSize.size_22,
+          ),
         ),
-        const SizedBox(width: 4),
-        Flexible(child: _styledLetterWord(objectName, accentColor)),
+        if (rest.isNotEmpty)
+          Flexible(
+            child: Text(
+              rest,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: "MochiyPop",
+                fontWeight: FontWeight.w400,
+                color: CColor.black,
+                fontSize: FontSize.size_12,
+              ),
+            ),
+          ),
       ],
     );
   }

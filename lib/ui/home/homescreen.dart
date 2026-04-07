@@ -442,11 +442,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
               margin: EdgeInsets.only(
                 bottom: (Platform.isIOS) ? Sizes.height_2 : Sizes.height_3,
                 top: (Platform.isIOS) ? Sizes.height_1 : Sizes.height_0,
+                left: Sizes.width_2,
+                right: Sizes.width_2,
               ),
-              child: Image.asset(
-                _cardImage(gamesCategoryList[index].image.toString()),
-                width: Sizes.width_50,
-                fit: BoxFit.fill,
+              width: Sizes.width_45,
+              decoration: BoxDecoration(
+                color: CColor.white,
+                borderRadius: BorderRadius.circular(25),
+                boxShadow: const [
+                  BoxShadow(
+                    color: CColor.yellowShadow,
+                    offset: Offset(0.0, 5.0),
+                    blurRadius: 5.0,
+                    spreadRadius: 1.0,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(25),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: Sizes.height_3, top: Sizes.height_1),
+                  child: Image.asset(
+                    _cardImage(gamesCategoryList[index].image.toString()),
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
             ),
             Container(
@@ -486,6 +506,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver{
     if (_isLettersMode) {
       gamesCategoryList.removeWhere(
           (item) => item.moveScreen.toString() == 'coloringScreen');
+      // Rename sections for letters mode
+      final nameMap = {
+        'countScreen': 'ABC',
+        'quizScreen': 'Quiz',
+        'practiceScreen': 'Practice',
+        'matchingScreen': 'Matching',
+        'sequenceScreen': 'Sequence',
+        'sortingScreen': 'Sorting',
+        'trainScreen': 'Train',
+        'spotItScreen': 'Spot It',
+        'pairScreen': 'Pairs',
+        'writeScreen': 'Write',
+        'tracingScreen': 'Tracing',
+      };
+      for (final item in gamesCategoryList) {
+        final newName = nameMap[item.moveScreen];
+        if (newName != null) item.gameName = newName;
+      }
     }
     Debug.printLog(
         "_getCategoryData==>> ${gamesCategoryList.length}");

@@ -93,9 +93,10 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    runSpacing = 8;
-    spacing = 5;
-    columns = 7;
+    final isLetters = Preference.shared.getBool(Preference.isLettersMode) ?? false;
+    runSpacing = isLetters ? 4 : 8;
+    spacing = isLetters ? 3 : 5;
+    columns = isLetters ? 9 : 7;
     w = (MediaQuery.of(context).size.width - runSpacing * (columns - 1)) / columns;
 
     return Scaffold(
@@ -212,9 +213,10 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
             spacing: spacing,
             alignment: WrapAlignment.center,
             children: List.generate(listLearnNumbersData.length, (index) {
+              final isLetters = Preference.shared.getBool(Preference.isLettersMode) ?? false;
               return SizedBox(
                 width: w,
-                height: w,
+                height: isLetters ? w * 0.75 : w,
                 child: _itemLeanNumbers(index),
               );
             }),
@@ -238,7 +240,7 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
     } else {
       listLearnNumbersData = await DataBaseHelper().getAllLearnNumberData();
     }
-    Debug.printLog("listLearnNumbersData==>> " + listLearnNumbersData.length.toString());
+    Debug.printLog("listLearnNumbersData==>> ${listLearnNumbersData.length}");
     numbers = List.generate(listLearnNumbersData.length, (index) => Container(color: CColor.black,));
     setState(() {});
   }
@@ -280,7 +282,7 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
       player!.stop();
     }
     var duration = await player!.setAsset(soundName);
-    Debug.printLog("playSound==>>> "+soundName+"  "+duration.toString());
+    Debug.printLog("playSound==>>> $soundName  $duration");
     player!.play();
   }
 
@@ -324,7 +326,7 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
   }
 
   playSoundFromList(int i,String soundName)async{
-    Debug.printLog("playSoundFromList===>>> "+soundName+"  "+i.toString());
+    Debug.printLog("playSoundFromList===>>> $soundName  $i");
     if( listLearnNumbersData[i].player!.playing){
       listLearnNumbersData[i].player!.stop();
     }
@@ -335,7 +337,7 @@ class _LearnScreenState extends State<LearnScreen> with WidgetsBindingObserver {
     });
   }
   stopAllItemAnimation(){
-    Debug.printLog("stopAllItemAnimation==>>> "+isNumbersPlay.toString());
+    Debug.printLog("stopAllItemAnimation==>>> $isNumbersPlay");
     if(!isNumbersPlay) {
       for (var i = 0; i < listLearnNumbersData.length; i++) {
         setState(() {
