@@ -30,9 +30,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Preference().instance();
 
-  RequestConfiguration conf= RequestConfiguration(tagForChildDirectedTreatment: 1);
-  MobileAds.instance.updateRequestConfiguration(conf);
-  await MobileAds.instance.initialize();
+  try {
+    await MobileAds.instance.initialize();
+    RequestConfiguration conf = RequestConfiguration(tagForChildDirectedTreatment: 1);
+    MobileAds.instance.updateRequestConfiguration(conf);
+  } catch (e) {
+    debugPrint('MobileAds init error: $e');
+  }
   runApp(const MyApp());
 
 }
@@ -77,6 +81,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
     super.didChangeDependencies();
   }
 
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     Debug.printLog(
         "AppLifecycleState.didChangeAppLifecycleState state.....  $state");
@@ -134,8 +139,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
       navigatorKey: MyApp.navigatorKey,
       builder: (context, child) {
         return MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.0)),
           child: child!,
-          data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
         );
       },
       theme: ThemeData(
@@ -175,7 +180,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver{
           statusBarBrightness: Brightness.dark,
           systemNavigationBarIconBrightness: Brightness.light,
         ),
-        child: const ModeSelectScreen(),
+        child: ModeSelectScreen(),
       ),
       routes: <String, WidgetBuilder>{
         '/modeSelect': (BuildContext context) => const ModeSelectScreen(),

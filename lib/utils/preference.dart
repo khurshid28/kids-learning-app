@@ -46,58 +46,59 @@ class Preference {
 
   // String get & set
   String? getString(String key) {
-    return _pref!.getString(key);
+    return _pref?.getString(key);
   }
 
   Future<bool> setString(String key, String value) {
-    return _pref!.setString(key, value);
+    return _pref?.setString(key, value) ?? Future.value(false);
   }
 
   // Int get & set
   int? getInt(String key) {
-    return _pref!.getInt(key);
+    return _pref?.getInt(key);
   }
 
   Future<bool> setInt(String key, int value) {
-    return _pref!.setInt(key, value);
+    return _pref?.setInt(key, value) ?? Future.value(false);
   }
 
   // Bool get & set
   bool? getBool(String key) {
-    return _pref!.getBool(key);
+    return _pref?.getBool(key);
   }
 
   Future<bool> setBool(String key, bool value) {
-    return _pref!.setBool(key, value);
+    return _pref?.setBool(key, value) ?? Future.value(false);
   }
 
   // Double get & set
   double? getDouble(String key) {
-    return _pref!.getDouble(key);
+    return _pref?.getDouble(key);
   }
 
   Future<bool> setDouble(String key, double value) {
-    return _pref!.setDouble(key, value);
+    return _pref?.setDouble(key, value) ?? Future.value(false);
   }
 
   // Array get & set
   List<String>? getStringList(String key) {
-    return _pref!.getStringList(key);
+    return _pref?.getStringList(key);
   }
 
   Future<bool> setStringList(String key, List<String> value) {
-    return _pref!.setStringList(key, value);
+    return _pref?.setStringList(key, value) ?? Future.value(false);
   }
 
   /* remove  element from preferences */
   Future<bool> remove(key, [multi = false]) async {
     SharedPreferences? pref = await instance();
+    if (pref == null) return false;
     if (multi) {
       key.forEach((f) async {
-        return await pref!.remove(f);
+        return await pref.remove(f);
       });
     } else {
-      return await pref!.remove(key);
+      return await pref.remove(key);
     }
 
     return Future.value(true);
@@ -105,8 +106,7 @@ class Preference {
 
   /* remove all elements from preferences */
   static Future<bool> clear() async {
-    // return await _pref.clear();
-    // Except FCM token & device info
+    if (_pref == null) return false;
     _pref!.getKeys().forEach((key) async {
         await _pref!.remove(key);
     });
